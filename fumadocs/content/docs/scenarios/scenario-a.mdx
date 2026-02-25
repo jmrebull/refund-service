@@ -1,0 +1,68 @@
+---
+title: Scenario A — Full refund, single payment
+description: Refund the exact transaction total back to the single payment method
+---
+
+The simplest case. The full transaction total is returned to the single payment method.
+No proportional distribution or rounding is required.
+
+## Formula
+
+```python
+total_refund             = transaction.total
+payment[0].refund_amount = transaction.total
+```
+
+## Example
+
+**Transaction:** `TXN-REG-001` — `64.00 USD`, paid by `CARD`
+
+```bash
+curl -X POST http://localhost:8000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "TXN-REG-001",
+    "operator_id": "op1",
+    "reason": "customer request"
+  }'
+```
+
+**Response (201):**
+
+```json
+{
+  "data": {
+    "refund_id": "RF-A1B2C3D4",
+    "transaction_id": "TXN-REG-001",
+    "status": "APPROVED",
+    "total_refund_amount": "64.00",
+    "currency": "USD",
+    "calculation_breakdown": {
+      "scenario": "A: Full refund, single payment method",
+      "total_refund": "64.00",
+      "payment_breakdown": [
+        {
+          "payment_id": "PAY-REG-001",
+          "payment_type": "CARD",
+          "original_amount": "64.00",
+          "refund_amount": "64.00",
+          "currency": "USD"
+        }
+      ]
+    }
+  }
+}
+```
+
+## When this scenario applies
+
+- Transaction has exactly one payment method
+- No `item_ids` in the request
+- Transaction is not an installment transaction
+- Transaction is not cross-border
+
+<Callout>
+  If the transaction has multiple payment methods, the engine uses
+  [Scenario B](/docs/scenarios/scenario-b) instead.
+</Callout>

@@ -1,0 +1,74 @@
+---
+title: How Refunds Work
+description: The 5-stage pipeline every refund request passes through
+---
+
+Every refund request flows through a deterministic, five-stage pipeline.
+No side effects occur until all validations pass — the calculation step is entirely pure.
+
+```
+Authenticate → Validate → Calculate → Persist → Audit
+```
+
+<Steps>
+  <Step>
+    ### Authenticate
+
+    The `X-API-Key` header is verified before any business logic executes.
+    Rate limiting enforces a 60-second lockout after 5 failed attempts from the same IP.
+    If authentication fails, the pipeline stops here.
+  </Step>
+
+  <Step>
+    ### Validate
+
+    Six business rules run in strict order (see [Validation Pipeline](/docs/guides/validation-pipeline)).
+    The first failing rule short-circuits the request with a structured error response.
+    No state is written at any point during validation.
+  </Step>
+
+  <Step>
+    ### Calculate
+
+    The refund engine selects the correct scenario (A–E) based on transaction properties
+    and request parameters, then computes all amounts using `decimal.Decimal`.
+    This step performs no I/O and has zero side effects.
+  </Step>
+
+  <Step>
+    ### Persist
+
+    The refund record and idempotency key are written to the store.
+    The transaction's cumulative refunded balance is updated.
+    This is the **only** step that writes state.
+  </Step>
+
+  <Step>
+    ### Audit
+
+    Two immutable events are appended: `REFUND_REQUESTED` on entry and `REFUND_APPROVED`
+    on success (or `REFUND_REJECTED` on failure). Audit entries are never modified or deleted.
+  </Step>
+</Steps>
+
+## Scenario selection
+
+The engine selects a scenario based on these conditions, evaluated in order:
+
+| Condition | Scenario |
+|-----------|----------|
+| `transaction.is_cross_border == true` | E (wraps A, B, or C and adds USD equivalent) |
+| `item_ids` provided in the request | C (partial refund) |
+| Transaction has an installment payment | D (installment refund) |
+| Single payment method | A (full single-method) |
+| Multiple payment methods | B (full split-payment) |
+
+## Side-effect boundaries
+
+| Step | Reads store | Writes store |
+|------|-------------|--------------|
+| Authenticate | — | — |
+| Validate | ✅ | ❌ |
+| Calculate | ❌ | ❌ |
+| Persist | — | ✅ |
+| Audit | — | ✅ (append-only) |

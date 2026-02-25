@@ -1,0 +1,68 @@
+---
+title: Scenario E — Cross-border refund
+description: Refund a foreign-currency transaction with a USD equivalent
+---
+
+Cross-border transactions are settled in a local currency. The engine delegates to
+Scenario A, B, or C based on the request, then appends a USD equivalent calculated
+using the exchange rate stored at purchase time.
+
+## Formula
+
+```python
+# Delegate to A, B, or C for the local currency refund
+breakdown = calculate_full_refund(transaction)  # or partial
+
+# Then append USD equivalent
+usd_equivalent = round(total_refund / exchange_rate_to_usd)
+```
+
+<Callout type="warn">
+  The exchange rate is always the rate stored at purchase time — live rates are never fetched.
+  This ensures the USD equivalent is deterministic and auditable regardless of when
+  the refund is processed.
+</Callout>
+
+## Example
+
+**Transaction:** `TXN-CROSS-001` — `64.00 BRL`, `exchange_rate_to_usd = 5.20`
+
+```bash
+curl -X POST http://localhost:8000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "TXN-CROSS-001",
+    "operator_id": "op1",
+    "reason": "item not received"
+  }'
+```
+
+**Calculation:**
+
+```
+total_refund   = 64.00 BRL   (Scenario A)
+usd_equivalent = 64.00 / 5.20 = 12.31 USD
+```
+
+**Response (201):**
+
+```json
+{
+  "data": {
+    "calculation_breakdown": {
+      "scenario": "E: Cross-border full refund",
+      "total_refund": "64.00",
+      "usd_equivalent": "12.31",
+      "exchange_rate_used": "5.20"
+    }
+  }
+}
+```
+
+## Scenario variants
+
+| Request | `scenario` label in response |
+|---------|------------------------------|
+| No `item_ids` (full refund) | `E: Cross-border full refund` |
+| With `item_ids` (partial) | `E: Cross-border partial refund` |

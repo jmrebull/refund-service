@@ -1,0 +1,32 @@
+---
+title: Get Refund
+description: GET /api/v1/refunds/{refund_id} — Retrieve a single refund by its ID
+---
+
+## `GET /api/v1/refunds/{refund_id}`
+
+Retrieve a single refund by its ID. Requires `X-API-Key` header.
+
+## Path parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `refund_id` | The refund ID returned by the create endpoint (e.g., `RF-A1B2C3D4`) |
+
+## Example
+
+```bash
+curl http://localhost:8000/api/v1/refunds/RF-A1B2C3D4 \
+  -H "X-API-Key: SOLARA-SECRET-2026"
+```
+
+## Response `200 OK`
+
+Returns the same shape as the [Create Refund](/docs/api-reference/create-refund) response.
+
+## Error responses
+
+| Code | HTTP | Condition |
+|------|------|-----------|
+| `REFUND_NOT_FOUND` | 404 | Refund ID does not exist |
+| `UNAUTHORIZED` | 401 | Missing or invalid API key |

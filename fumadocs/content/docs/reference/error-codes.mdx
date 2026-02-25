@@ -1,0 +1,63 @@
+---
+title: Error Codes
+description: All structured error codes returned by the Refund API
+---
+
+All errors follow the same envelope structure:
+
+```json
+{
+  "detail": {
+    "error": {
+      "code": "TRANSACTION_NOT_FOUND",
+      "message": "Transaction TXN-001 not found",
+      "details": {}
+    }
+  }
+}
+```
+
+## Error code reference
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `TRANSACTION_NOT_FOUND` | 404 | The `transaction_id` does not exist in the store |
+| `INVALID_TRANSACTION_STATUS` | 422 | Transaction status does not allow refunds |
+| `DUPLICATE_REFUND` | 409 | A full refund already exists, or `idempotency_key` has been seen |
+| `INVALID_ITEM_IDS` | 422 | One or more `item_ids` do not exist in the transaction |
+| `REFUND_AMOUNT_EXCEEDED` | 422 | Estimated refund exceeds the remaining refundable balance |
+| `INSTALLMENT_NOT_CHARGED` | 422 | No installments have been charged yet |
+| `UNAUTHORIZED` | 401 | Missing or invalid `X-API-Key` header |
+| `CALCULATION_ERROR` | 422 | Financial guard condition violated (e.g., zero transaction total) |
+| `RATE_LIMITED` | 429 | Too many failed auth attempts from the same IP (60 s lockout) |
+| `REQUEST_TOO_LARGE` | 413 | Request body exceeds 64 KB |
+| `INTERNAL_ERROR` | 500 | Unexpected server error — no details leaked to callers |
+
+## Error details
+
+Some errors include additional data in the `details` field:
+
+### `DUPLICATE_REFUND`
+```json
+{ "existing_refund_id": "RF-A1B2C3D4", "refunded_at": "2026-02-25T10:00:00Z" }
+```
+
+### `INVALID_ITEM_IDS`
+```json
+{ "unknown_item_ids": ["ITEM-XYZ"], "valid_item_ids": ["ITEM-REG-010-A", "ITEM-REG-010-B"] }
+```
+
+### `REFUND_AMOUNT_EXCEEDED`
+```json
+{
+  "estimated_refund": "50.00",
+  "remaining_refundable": "20.00",
+  "transaction_total": "64.00",
+  "already_refunded": "44.00"
+}
+```
+
+### `INVALID_TRANSACTION_STATUS`
+```json
+{ "status": "VOIDED" }
+```

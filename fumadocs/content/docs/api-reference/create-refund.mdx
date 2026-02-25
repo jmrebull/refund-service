@@ -1,0 +1,73 @@
+---
+title: Create Refund
+description: POST /api/v1/refunds — Create a new refund for a captured or settled transaction
+---
+
+## `POST /api/v1/refunds`
+
+Creates a new refund. Requires `X-API-Key` header.
+
+## Request body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `transaction_id` | string | **required** | ID of the transaction (`^[A-Z0-9_-]+$`, max 50 chars) |
+| `operator_id` | string | **required** | ID of the operator initiating the refund (max 50 chars) |
+| `reason` | string | **required** | Human-readable reason (max 500 chars) |
+| `item_ids` | string[] | optional | Item IDs for a partial refund. Omit for full refund. Max 100 items. |
+| `idempotency_key` | string | optional | Unique key to prevent duplicate processing (max 100 chars) |
+
+```json
+{
+  "transaction_id": "TXN-REG-001",
+  "operator_id": "op1",
+  "reason": "customer request"
+}
+```
+
+## Response `201 Created`
+
+```json
+{
+  "data": {
+    "refund_id": "RF-A1B2C3D4",
+    "operation_type": "REFUND",
+    "transaction_id": "TXN-REG-001",
+    "status": "APPROVED",
+    "total_refund_amount": "64.00",
+    "currency": "USD",
+    "operator_id": "op1",
+    "reason": "customer request",
+    "calculation_breakdown": {
+      "scenario": "A: Full refund, single payment method",
+      "total_refund": "64.00",
+      "payment_breakdown": [
+        {
+          "payment_id": "PAY-REG-001",
+          "payment_type": "CARD",
+          "original_amount": "64.00",
+          "refund_amount": "64.00",
+          "currency": "USD"
+        }
+      ]
+    },
+    "created_at": "2026-02-25T10:00:00Z"
+  },
+  "meta": {
+    "timestamp": "2026-02-25T10:00:00Z",
+    "request_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+## Error responses
+
+| Code | HTTP | Condition |
+|------|------|-----------|
+| `TRANSACTION_NOT_FOUND` | 404 | Transaction does not exist |
+| `INVALID_TRANSACTION_STATUS` | 422 | Status is not `CAPTURED` or `SETTLED` |
+| `DUPLICATE_REFUND` | 409 | Full refund already exists or idempotency key reused |
+| `INVALID_ITEM_IDS` | 422 | One or more item IDs not found |
+| `REFUND_AMOUNT_EXCEEDED` | 422 | Exceeds remaining refundable balance |
+| `INSTALLMENT_NOT_CHARGED` | 422 | No installments charged yet |
+| `UNAUTHORIZED` | 401 | Missing or invalid API key |

@@ -1,0 +1,63 @@
+---
+title: Scenario B — Full refund, split payment
+description: Distribute a full refund proportionally across multiple payment methods
+---
+
+When a transaction was paid with multiple payment methods, the full refund is distributed
+proportionally based on each method's original contribution.
+
+## Formula
+
+```python
+weight                = payment.amount / transaction.total
+payment.refund_amount = round(total_refund × weight)
+```
+
+Each method's weight equals its exact share of the total, so the distributed amounts always
+sum to `transaction.total`.
+
+## Example
+
+**Transaction:** `TXN-SPLIT-001` — `64.00 USD`, `CARD (38.40)` + `WALLET (25.60)`
+
+```bash
+curl -X POST http://localhost:8000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "TXN-SPLIT-001",
+    "operator_id": "op1",
+    "reason": "damaged item"
+  }'
+```
+
+**Calculation:**
+
+| Method | Amount | Weight | Refund |
+|--------|--------|--------|--------|
+| CARD | 38.40 | 38.40 / 64.00 = **0.60** | 64.00 × 0.60 = **38.40** |
+| WALLET | 25.60 | 25.60 / 64.00 = **0.40** | 64.00 × 0.40 = **25.60** |
+
+**Response (201):**
+
+```json
+{
+  "data": {
+    "calculation_breakdown": {
+      "scenario": "B: Full refund, split payment",
+      "total_refund": "64.00",
+      "payment_breakdown": [
+        { "payment_type": "CARD", "original_amount": "38.40", "refund_amount": "38.40" },
+        { "payment_type": "WALLET", "original_amount": "25.60", "refund_amount": "25.60" }
+      ]
+    }
+  }
+}
+```
+
+## When this scenario applies
+
+- Transaction has two or more payment methods
+- No `item_ids` in the request
+- Transaction is not an installment transaction
+- Transaction is not cross-border

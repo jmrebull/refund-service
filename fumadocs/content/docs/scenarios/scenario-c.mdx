@@ -1,0 +1,75 @@
+---
+title: Scenario C — Partial refund (item subset)
+description: Refund a subset of line items with proportional tax and shipping
+---
+
+When `item_ids` are specified, the engine refunds those items plus a proportional share
+of tax and shipping. The proportion is based on the items' subtotal relative to the
+full transaction subtotal.
+
+## Formula
+
+```python
+ratio           = items_subtotal / transaction.subtotal
+refund_tax      = round(transaction.tax × ratio)
+refund_shipping = round(transaction.shipping × ratio)
+total_refund    = round(items_subtotal + refund_tax + refund_shipping)
+```
+
+The total is then distributed across payment methods using the [Scenario B](/docs/scenarios/scenario-b) weight formula.
+
+## Example
+
+**Transaction:** `TXN-REG-010`
+
+| Field | Value |
+|-------|-------|
+| subtotal | 50.00 |
+| tax | 9.00 |
+| shipping | 5.00 |
+| total | 64.00 |
+
+Items: `ITEM-A` (30.00) + `ITEM-B` (20.00)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "TXN-REG-010",
+    "item_ids": ["ITEM-REG-010-A"],
+    "operator_id": "op2",
+    "reason": "wrong size"
+  }'
+```
+
+**Calculation:**
+
+```
+ratio           = 30.00 / 50.00 = 0.60
+refund_tax      = 9.00 × 0.60   = 5.40
+refund_shipping = 5.00 × 0.60   = 3.00
+total_refund    = 30.00 + 5.40 + 3.00 = 38.40
+```
+
+**Response (201):**
+
+```json
+{
+  "data": {
+    "calculation_breakdown": {
+      "scenario": "C: Partial refund, item subset",
+      "items_subtotal": "30.00",
+      "item_ratio": "0.60",
+      "proportional_tax": "5.40",
+      "proportional_shipping": "3.00",
+      "total_refund": "38.40"
+    }
+  }
+}
+```
+
+<Callout type="warn">
+  All supplied `item_ids` must exist in the transaction. Any unknown ID fails validation
+  with `INVALID_ITEM_IDS` before the calculation runs.
+</Callout>

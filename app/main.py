@@ -1,14 +1,12 @@
 """
 FastAPI application entry point.
 
-Registers middleware (in order), routes, exception handlers,
-and mounts the static developer docs.
+Registers middleware (in order), routes, and exception handlers.
 """
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 import os
 
 from app.config import is_production, get_cors_origins
@@ -61,19 +59,6 @@ def create_app() -> FastAPI:
     application.include_router(refunds_router)
     application.include_router(transactions_router)
     application.include_router(audit_router)
-
-    if not is_production():
-        _docs_template = os.path.join(os.path.dirname(__file__), "templates", "docs.html")
-
-        @application.get("/docs", include_in_schema=False)
-        async def custom_docs() -> HTMLResponse:
-            with open(_docs_template, encoding="utf-8") as f:
-                return HTMLResponse(f.read())
-
-    # ── Developer docs (static) ─────────────────────────────────────────────
-    docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs")
-    if os.path.isdir(docs_dir):
-        application.mount("/developer", StaticFiles(directory=docs_dir, html=True), name="developer-docs")
 
     # ── Exception handlers ───────────────────────────────────────────────────
     @application.exception_handler(Exception)

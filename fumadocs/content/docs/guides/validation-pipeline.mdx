@@ -1,0 +1,92 @@
+---
+title: Validation Pipeline
+description: Six business rules that run in strict order before any calculation
+---
+
+Validations execute in strict order. The first failure raises an error and no further rules are evaluated.
+All validators are read-only — they never write to the store.
+
+<Callout>
+  Rules 4 and 6 are conditional: rule 4 only runs when `item_ids` is supplied;
+  rule 6 only runs for full refunds on installment transactions.
+</Callout>
+
+## Rules
+
+### Rule 1 — Transaction must exist
+
+The `transaction_id` must resolve to a known transaction in the store.
+
+| Error code | HTTP |
+|------------|------|
+| `TRANSACTION_NOT_FOUND` | 404 |
+
+---
+
+### Rule 2 — Transaction status must allow refunds
+
+Only `CAPTURED` and `SETTLED` transactions are refundable.
+
+| Status | Refundable | Reason |
+|--------|-----------|--------|
+| `CAPTURED` | ✅ Yes | — |
+| `SETTLED` | ✅ Yes | — |
+| `AUTHORIZED` | ❌ No | Use void/cancel instead |
+| `VOIDED` | ❌ No | Already reversed |
+| `CHARGEBACKED` | ❌ No | Use the disputes process |
+
+| Error code | HTTP |
+|------------|------|
+| `INVALID_TRANSACTION_STATUS` | 422 |
+
+---
+
+### Rule 3 — No duplicate full refund
+
+If an `idempotency_key` is supplied, it is checked first. If a refund with that key already
+exists, the request is rejected. For full refunds (no `item_ids`), any existing full refund
+on the same transaction also blocks the request.
+
+The error details include `existing_refund_id` and `refunded_at`.
+
+| Error code | HTTP |
+|------------|------|
+| `DUPLICATE_REFUND` | 409 |
+
+---
+
+### Rule 4 — All item IDs must exist *(conditional)*
+
+When `item_ids` is supplied, every ID must exist in the transaction's item list.
+A single unknown ID fails the entire request. Error details include both
+`unknown_item_ids` and `valid_item_ids`.
+
+| Error code | HTTP |
+|------------|------|
+| `INVALID_ITEM_IDS` | 422 |
+
+---
+
+### Rule 5 — Refund must not exceed remaining balance
+
+The estimated refund must not exceed `transaction.total − already_refunded`.
+For partial refunds, the estimate is pre-computed before the calculation engine runs:
+
+```
+estimated = items_subtotal + proportional_tax + proportional_shipping
+```
+
+| Error code | HTTP |
+|------------|------|
+| `REFUND_AMOUNT_EXCEEDED` | 422 |
+
+---
+
+### Rule 6 — Installment must have charges *(conditional)*
+
+For full refunds on installment transactions, at least one installment must have been charged.
+A `charged_count` of `0` means there is nothing to refund.
+
+| Error code | HTTP |
+|------------|------|
+| `INSTALLMENT_NOT_CHARGED` | 422 |

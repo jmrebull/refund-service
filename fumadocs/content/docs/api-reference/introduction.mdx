@@ -1,0 +1,64 @@
+---
+title: API Reference
+description: All endpoints, request parameters, and response shapes
+---
+
+Base URL: `http://localhost:8000`
+
+All endpoints require the `X-API-Key` header. See [Authentication](/docs/authentication).
+
+<Callout>
+  For an interactive playground that lets you send live requests, visit
+  the [API Reference page](/api-reference) with the FastAPI server running at `localhost:8000`.
+</Callout>
+
+## Endpoints
+
+<Cards>
+  <Card title="POST /api/v1/refunds" href="/docs/api-reference/create-refund">
+    Create a new refund
+  </Card>
+  <Card title="GET /api/v1/refunds/{id}" href="/docs/api-reference/get-refund">
+    Retrieve a single refund
+  </Card>
+  <Card title="GET /api/v1/refunds" href="/docs/api-reference/list-refunds">
+    List all refunds
+  </Card>
+  <Card title="GET /api/v1/transactions/{id}" href="/docs/api-reference/get-transaction">
+    Retrieve a transaction
+  </Card>
+  <Card title="GET /api/v1/transactions" href="/docs/api-reference/list-transactions">
+    List all transactions
+  </Card>
+  <Card title="GET /api/v1/audit" href="/docs/api-reference/query-audit">
+    Query the audit log
+  </Card>
+</Cards>
+
+## Response envelope
+
+All responses are wrapped in a standard envelope:
+
+```json
+{
+  "data": { ... },
+  "meta": {
+    "timestamp": "2026-02-25T10:00:00Z",
+    "request_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+## Error format
+
+```json
+{
+  "detail": {
+    "error": {
+      "code": "TRANSACTION_NOT_FOUND",
+      "message": "Transaction TXN-001 not found",
+      "details": {}
+    }
+  }
+}
+```

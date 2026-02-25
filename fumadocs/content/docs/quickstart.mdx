@@ -1,0 +1,89 @@
+---
+title: Quickstart
+description: Issue your first refund in under a minute
+---
+
+## Prerequisites
+
+- The Solara Retail API running at `http://localhost:8000`
+- `API_KEY` set in your `.env` file (default for local dev: `SOLARA-SECRET-2026`)
+
+## Steps
+
+<Steps>
+  <Step>
+    ### Browse available transactions
+
+    ```bash
+    curl http://localhost:8000/api/v1/transactions \
+      -H "X-API-Key: SOLARA-SECRET-2026"
+    ```
+  </Step>
+
+  <Step>
+    ### Issue a full refund
+
+    Omit `item_ids` to refund the full transaction amount.
+
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/refunds \
+      -H "X-API-Key: SOLARA-SECRET-2026" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "transaction_id": "TXN-REG-001",
+        "operator_id": "op1",
+        "reason": "customer request"
+      }'
+    ```
+
+    The response includes a `calculation_breakdown` showing which scenario was applied
+    and how amounts were distributed across payment methods.
+  </Step>
+
+  <Step>
+    ### Verify the audit trail
+
+    ```bash
+    curl "http://localhost:8000/api/v1/audit?transaction_id=TXN-REG-001" \
+      -H "X-API-Key: SOLARA-SECRET-2026"
+    ```
+
+    You'll see two events: `REFUND_REQUESTED` and `REFUND_APPROVED`.
+  </Step>
+</Steps>
+
+## Partial refund (item subset)
+
+Supply `item_ids` to refund only specific items. Tax and shipping are refunded proportionally.
+
+```bash
+curl -X POST http://localhost:8000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "TXN-REG-010",
+    "item_ids": ["ITEM-REG-010-A"],
+    "operator_id": "op2",
+    "reason": "wrong size"
+  }'
+```
+
+See [Scenario C](/docs/scenarios/scenario-c) for the full formula.
+
+## Safe retries with idempotency
+
+Include `idempotency_key` to prevent duplicate refunds on network retries:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "TXN-REG-001",
+    "operator_id": "op1",
+    "reason": "customer request",
+    "idempotency_key": "refund-req-20260225-001"
+  }'
+```
+
+If a refund with the same key already exists, the API returns `409 DUPLICATE_REFUND` with the existing refund's ID.

@@ -1,0 +1,59 @@
+---
+title: Query Audit Log
+description: GET /api/v1/audit — Retrieve the append-only audit log
+---
+
+## `GET /api/v1/audit`
+
+Query the append-only audit log. Requires `X-API-Key` header.
+
+## Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `transaction_id` | string | Filter entries for a specific transaction |
+| `refund_id` | string | Filter entries for a specific refund |
+
+Both filters can be combined. If neither is supplied, all audit entries are returned.
+
+## Example
+
+```bash
+# By transaction
+curl "http://localhost:8000/api/v1/audit?transaction_id=TXN-REG-001" \
+  -H "X-API-Key: SOLARA-SECRET-2026"
+
+# By refund
+curl "http://localhost:8000/api/v1/audit?refund_id=RF-A1B2C3D4" \
+  -H "X-API-Key: SOLARA-SECRET-2026"
+```
+
+## Response `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "event": "REFUND_REQUESTED",
+      "refund_id": "RF-A1B2C3D4",
+      "transaction_id": "TXN-REG-001",
+      "operator_id": "op1",
+      "timestamp": "2026-02-25T10:00:00Z"
+    },
+    {
+      "event": "REFUND_APPROVED",
+      "refund_id": "RF-A1B2C3D4",
+      "transaction_id": "TXN-REG-001",
+      "operator_id": "op1",
+      "timestamp": "2026-02-25T10:00:00Z"
+    }
+  ],
+  "meta": { "timestamp": "2026-02-25T10:00:00Z", "request_id": "..." }
+}
+```
+
+<Callout>
+  The audit log is **append-only**. Entries are never modified or deleted.
+  Every refund operation always produces at least two entries:
+  `REFUND_REQUESTED` followed by `REFUND_APPROVED` or `REFUND_REJECTED`.
+</Callout>

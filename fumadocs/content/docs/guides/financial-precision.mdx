@@ -1,0 +1,70 @@
+---
+title: Financial Precision
+description: How decimal arithmetic and late rounding guarantee correct monetary results
+---
+
+Every monetary value in this service is computed using Python's `decimal.Decimal` type.
+Floating-point arithmetic (`float`) is never used for financial calculations.
+
+## Rounding rules
+
+| Property | Value |
+|----------|-------|
+| Type | `decimal.Decimal` |
+| Rounding mode | `ROUND_HALF_UP` |
+| Scale | 2 decimal places |
+| Applied | At final output only — intermediate values carry full precision |
+
+## Why `decimal.Decimal`?
+
+Binary floating-point (`float`) cannot represent most decimal fractions exactly:
+
+```python
+>>> 0.1 + 0.2
+0.30000000000000004   # wrong
+
+>>> Decimal("0.1") + Decimal("0.2")
+Decimal("0.3")        # correct
+```
+
+For financial calculations, even a rounding error of `0.0000000000000001` compounds
+across thousands of transactions into real money.
+
+## Why late rounding matters
+
+Rounding intermediate values accumulates error across a chain of operations.
+By delaying `quantize()` until the final step, each computed value incurs exactly
+one rounding loss rather than a compounding chain.
+
+```python
+# WRONG — rounding too early
+ratio      = quantize(items_subtotal / subtotal)   # loses precision here
+refund_tax = quantize(tax × ratio)                 # error compounds
+
+# CORRECT — round only at output
+ratio           = items_subtotal / subtotal        # full precision
+refund_tax      = quantize(tax × ratio)            # rounded once, at output
+refund_shipping = quantize(shipping × ratio)       # rounded once, at output
+total_refund    = quantize(items_sub + tax + ship) # rounded once, at output
+```
+
+## `ROUND_HALF_UP` vs `ROUND_HALF_EVEN`
+
+Python's default `decimal` context uses `ROUND_HALF_EVEN` (banker's rounding), which rounds
+ties to the nearest even digit. This service uses `ROUND_HALF_UP` because:
+
+- It matches the rounding expectation of most payment processors and customers (0.5 rounds up)
+- It produces consistent, predictable results regardless of whether the digit being rounded is odd or even
+
+## Implementation
+
+```python
+from decimal import Decimal, ROUND_HALF_UP
+
+CENTS = Decimal("0.01")
+
+def quantize(value: Decimal) -> Decimal:
+    return value.quantize(CENTS, rounding=ROUND_HALF_UP)
+```
+
+This function is the only place rounding is applied in the calculation engine.

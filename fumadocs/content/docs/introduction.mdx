@@ -1,0 +1,43 @@
+---
+title: Introduction
+description: Issue and track refunds across full, split, partial, installment, and cross-border payment scenarios — with financial-grade precision and a complete audit trail.
+---
+
+The **Solara Retail Refund API** is a purpose-built service for processing refunds on LatAm e-commerce transactions.
+It supports five refund scenarios, enforces strict business rules, and records every operation in an append-only audit log.
+
+<Cards>
+  <Card title="Quickstart" href="/docs/quickstart">
+    Issue your first refund in under a minute
+  </Card>
+  <Card title="How Refunds Work" href="/docs/guides/how-refunds-work">
+    Understand the 5-stage request pipeline
+  </Card>
+  <Card title="Scenarios" href="/docs/scenarios/scenario-a">
+    Explore all 5 calculation scenarios with formulas
+  </Card>
+  <Card title="API Reference" href="/docs/api-reference/introduction">
+    Endpoint documentation with request and response examples
+  </Card>
+</Cards>
+
+## Key properties
+
+- **Financial precision** — All arithmetic uses `decimal.Decimal` with `ROUND_HALF_UP`. Floating-point is never used for monetary values.
+- **Immutable audit trail** — Every operation appends `REFUND_REQUESTED` and `REFUND_APPROVED` (or `REFUND_REJECTED`) events that are never modified or deleted.
+- **Idempotency** — Pass `idempotency_key` in the request body to safely retry without creating duplicates.
+- **Deterministic** — Refund amounts are computed entirely from data stored at purchase time. No live rate lookups.
+
+<Callout type="warn">
+  This API processes **refunds only**. Chargebacks, voids, and pre-capture authorizations are handled by separate services.
+</Callout>
+
+## Supported scenarios
+
+| Scenario | Description |
+|----------|-------------|
+| **A** | Full refund, single payment method |
+| **B** | Full refund, split across multiple payment methods |
+| **C** | Partial refund for a subset of line items |
+| **D** | Installment refund (charged installments only) |
+| **E** | Cross-border refund with USD equivalent |

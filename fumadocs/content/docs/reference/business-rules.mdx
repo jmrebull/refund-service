@@ -1,0 +1,41 @@
+---
+title: Business Rules
+description: Invariants the service enforces on every refund request
+---
+
+These rules are enforced at runtime and cannot be bypassed.
+
+## Validation rules (applied in order)
+
+1. Refunds are only allowed on `CAPTURED` or `SETTLED` transactions.
+2. `CHARGEBACKED` transactions go to the disputes process, not this service.
+3. `VOIDED` and `AUTHORIZED` transactions use void/cancel operations, not refunds.
+4. A full refund cannot be issued twice for the same transaction.
+5. Idempotency keys, when provided, prevent duplicate processing on retries.
+6. All supplied `item_ids` must exist in the transaction.
+7. The refund amount must not exceed the remaining refundable balance.
+8. For installment transactions, at least one installment must be charged.
+
+## Calculation rules
+
+9. Split payment refunds are distributed proportionally by each method's original weight.
+10. Partial refunds apply tax and shipping proportionally to the item ratio.
+11. Installment refunds cover only charged installments: `installment_value × charged_count`.
+12. Cross-border refunds always use the exchange rate stored at purchase time — never a live rate.
+
+## Financial precision rules
+
+13. All monetary arithmetic uses `decimal.Decimal` with `ROUND_HALF_UP`.
+14. Rounding is applied only at final output — intermediate values carry full precision.
+15. Floating-point (`float`) is never used for any monetary value.
+
+## Audit rules
+
+16. The audit log is append-only — entries are never modified or deleted.
+17. Every refund operation logs both `REFUND_REQUESTED` and `REFUND_APPROVED` (or `REFUND_REJECTED`).
+
+## Operational rules
+
+18. The `X-API-Key` header is required on all endpoints.
+19. Never pass API keys as query parameters.
+20. Deploy behind HTTPS in production. `Strict-Transport-Security` is enforced in production environments.

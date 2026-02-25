@@ -1,0 +1,28 @@
+---
+title: List Transactions
+description: GET /api/v1/transactions — List all transactions in the store
+---
+
+## `GET /api/v1/transactions`
+
+List all transactions. Useful for discovering available seed data during development.
+Requires `X-API-Key` header.
+
+## Example
+
+```bash
+curl http://localhost:8000/api/v1/transactions \
+  -H "X-API-Key: SOLARA-SECRET-2026"
+```
+
+## Response `200 OK`
+
+```json
+{
+  "data": [
+    { "id": "TXN-REG-001", "status": "CAPTURED", "total": "64.00", "..." },
+    { "id": "TXN-SPLIT-001", "status": "SETTLED", "total": "64.00", "..." }
+  ],
+  "meta": { "timestamp": "2026-02-25T10:00:00Z", "request_id": "..." }
+}
+```

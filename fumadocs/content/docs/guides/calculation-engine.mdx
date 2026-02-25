@@ -1,0 +1,119 @@
+---
+title: Calculation Engine
+description: Pure functions and formulas for all five refund scenarios
+---
+
+The calculation engine is a set of pure functions with no I/O or side effects.
+The correct scenario is selected automatically based on transaction properties
+and the presence of `item_ids` in the request.
+
+All rounding uses `decimal.Decimal` with `ROUND_HALF_UP` applied at final output only.
+See [Financial Precision](/docs/guides/financial-precision) for details.
+
+---
+
+## Scenario A — Full refund, single payment
+
+The simplest case: return the exact transaction total to the single payment method.
+No division or rounding occurs.
+
+```python
+total_refund             = transaction.total
+payment[0].refund_amount = transaction.total
+```
+
+**Example:** `transaction.total = 64.00 USD, 1 × CARD`
+→ `refund_amount = 64.00`
+
+---
+
+## Scenario B — Full refund, split payment
+
+When a transaction was paid with multiple methods, the refund is distributed proportionally
+so each method receives back exactly what it contributed.
+
+```python
+weight                = payment.amount / transaction.total
+payment.refund_amount = round(total_refund × weight)
+```
+
+**Example:** `transaction.total = 64.00`, `CARD = 38.40`, `WALLET = 25.60`
+
+| Method | Weight | Refund |
+|--------|--------|--------|
+| CARD | 38.40 / 64.00 = 0.60 | 64.00 × 0.60 = **38.40** |
+| WALLET | 25.60 / 64.00 = 0.40 | 64.00 × 0.40 = **25.60** |
+
+---
+
+## Scenario C — Partial refund (item subset)
+
+Refunds a subset of line items. Tax and shipping are refunded in proportion
+to the subtotal being returned.
+
+```python
+ratio           = items_subtotal / transaction.subtotal
+refund_tax      = round(transaction.tax × ratio)
+refund_shipping = round(transaction.shipping × ratio)
+total_refund    = round(items_subtotal + refund_tax + refund_shipping)
+```
+
+The total is then distributed across payment methods using the Scenario B weight formula.
+
+<Callout>
+  `items_subtotal` is `sum(unit_price × quantity)` for each requested item.
+  The ratio is computed against the full transaction `subtotal`, not the remaining refundable balance.
+</Callout>
+
+**Example:** `subtotal = 50.00`, `tax = 9.00`, `shipping = 5.00`. Refunding item worth `30.00`:
+
+```
+ratio           = 30.00 / 50.00 = 0.60
+refund_tax      = 9.00 × 0.60   = 5.40
+refund_shipping = 5.00 × 0.60   = 3.00
+total_refund    = 30.00 + 5.40 + 3.00 = 38.40
+```
+
+---
+
+## Scenario D — Installment refund
+
+Only installments already charged to the customer are refundable.
+
+```python
+installment_value = payment.amount / installments_total
+charged_amount    = round(installment_value × installments_charged)
+total_refund      = max(charged_amount − already_refunded, 0)
+```
+
+**Example:** `payment.amount = 64.00`, `installments_total = 6`, `installments_charged = 3`
+
+```
+installment_value = 64.00 / 6  = 10.6667
+charged_amount    = 10.6667 × 3 = 32.00
+total_refund      = 32.00 − 0   = 32.00
+```
+
+<Callout type="warn">
+  If `installments_charged == 0`, Rule 6 of the validation pipeline rejects the request
+  before the engine runs.
+</Callout>
+
+---
+
+## Scenario E — Cross-border refund
+
+The engine delegates to Scenario A, B, or C (based on `item_ids`), then appends
+a USD equivalent using the exchange rate locked in at purchase time.
+
+```python
+usd_equivalent = round(local_refund_amount / exchange_rate_to_usd)
+```
+
+**Example:** `total_refund = 64.00 BRL`, `exchange_rate_to_usd = 5.20`
+→ `usd_equivalent = 64.00 / 5.20 = 12.31 USD`
+
+<Callout type="warn">
+  The exchange rate is always the rate stored at purchase time — live rates are never fetched.
+  This ensures the USD equivalent is deterministic and auditable.
+</Callout>

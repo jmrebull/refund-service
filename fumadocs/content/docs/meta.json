@@ -1,0 +1,14 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "introduction",
+    "quickstart",
+    "authentication",
+    "---Getting Started---",
+    "guides",
+    "scenarios",
+    "---Reference---",
+    "reference",
+    "api-reference"
+  ]
+}

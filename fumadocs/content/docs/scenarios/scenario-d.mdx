@@ -1,0 +1,67 @@
+---
+title: Scenario D — Installment refund
+description: Refund only the installments that have already been charged
+---
+
+For installment-based transactions, only installments already charged to the customer
+are refundable. Uncharged future installments are excluded.
+
+## Formula
+
+```python
+installment_value = payment.amount / installments_total
+charged_amount    = round(installment_value × installments_charged)
+total_refund      = max(charged_amount − already_refunded, 0)
+```
+
+## Example
+
+**Transaction:** `TXN-INSTALL-001`
+
+| Field | Value |
+|-------|-------|
+| payment.amount | 64.00 |
+| installments_total | 6 |
+| installments_charged | 3 |
+| already_refunded | 0.00 |
+
+```bash
+curl -X POST http://localhost:8000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "TXN-INSTALL-001",
+    "operator_id": "op1",
+    "reason": "cancel order"
+  }'
+```
+
+**Calculation:**
+
+```
+installment_value = 64.00 / 6  = 10.6667
+charged_amount    = 10.6667 × 3 = 32.00
+total_refund      = 32.00 − 0   = 32.00
+```
+
+**Response (201):**
+
+```json
+{
+  "data": {
+    "calculation_breakdown": {
+      "scenario": "D: Installment refund",
+      "total_refund": "32.00",
+      "installments_charged": 3,
+      "installments_total": 6,
+      "installment_value": "10.67",
+      "charged_amount": "32.00"
+    }
+  }
+}
+```
+
+<Callout type="warn">
+  If `installments_charged == 0`, the request is rejected with `INSTALLMENT_NOT_CHARGED`
+  before the engine runs.
+</Callout>
