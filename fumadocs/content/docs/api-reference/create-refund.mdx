@@ -7,6 +7,13 @@ description: POST /api/v1/refunds — Create a new refund for a captured or sett
 
 Creates a new refund. Requires `X-API-Key` header.
 
+## Request headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-API-Key` | **required** | API authentication key |
+| `Idempotency-Key` | optional | Unique string (max 100 chars) to safely retry without double-processing |
+
 ## Request body
 
 | Parameter | Type | Required | Description |
@@ -15,7 +22,6 @@ Creates a new refund. Requires `X-API-Key` header.
 | `operator_id` | string | **required** | ID of the operator initiating the refund (max 50 chars) |
 | `reason` | string | **required** | Human-readable reason (max 500 chars) |
 | `item_ids` | string[] | optional | Item IDs for a partial refund. Omit for full refund. Max 100 items. |
-| `idempotency_key` | string | optional | Unique key to prevent duplicate processing (max 100 chars) |
 
 ```json
 {
@@ -26,6 +32,8 @@ Creates a new refund. Requires `X-API-Key` header.
 ```
 
 ## Response `201 Created`
+
+Returned when the refund is created for the first time.
 
 ```json
 {
@@ -60,13 +68,35 @@ Creates a new refund. Requires `X-API-Key` header.
 }
 ```
 
+## Idempotent replay — `200 OK`
+
+If the same `Idempotency-Key` is sent again, the server returns the original result without re-processing.
+The response includes the header `Idempotent-Replayed: true` so callers can distinguish a replay from a new creation.
+
+```bash
+curl -X POST http://localhost:9000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: refund-req-20260225-001" \
+  -d '{
+    "transaction_id": "TXN-REG-001",
+    "operator_id": "op1",
+    "reason": "customer request"
+  }'
+```
+
+| Scenario | HTTP status | `Idempotent-Replayed` header |
+|----------|-------------|------------------------------|
+| First request | `201 Created` | absent |
+| Retry with same key | `200 OK` | `true` |
+
 ## Error responses
 
 | Code | HTTP | Condition |
 |------|------|-----------|
 | `TRANSACTION_NOT_FOUND` | 404 | Transaction does not exist |
 | `INVALID_TRANSACTION_STATUS` | 422 | Status is not `CAPTURED` or `SETTLED` |
-| `DUPLICATE_REFUND` | 409 | Full refund already exists or idempotency key reused |
+| `DUPLICATE_REFUND` | 409 | A full refund already exists for this transaction |
 | `INVALID_ITEM_IDS` | 422 | One or more item IDs not found |
 | `REFUND_AMOUNT_EXCEEDED` | 422 | Exceeds remaining refundable balance |
 | `INSTALLMENT_NOT_CHARGED` | 422 | No installments charged yet |

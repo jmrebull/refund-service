@@ -23,7 +23,7 @@ All errors follow the same envelope structure:
 |------|------|-------------|
 | `TRANSACTION_NOT_FOUND` | 404 | The `transaction_id` does not exist in the store |
 | `INVALID_TRANSACTION_STATUS` | 422 | Transaction status does not allow refunds |
-| `DUPLICATE_REFUND` | 409 | A full refund already exists, or `idempotency_key` has been seen |
+| `DUPLICATE_REFUND` | 409 | A full refund already exists for this transaction |
 | `INVALID_ITEM_IDS` | 422 | One or more `item_ids` do not exist in the transaction |
 | `REFUND_AMOUNT_EXCEEDED` | 422 | Estimated refund exceeds the remaining refundable balance |
 | `INSTALLMENT_NOT_CHARGED` | 422 | No installments have been charged yet |

@@ -5,7 +5,7 @@ description: Issue your first refund in under a minute
 
 ## Prerequisites
 
-- The Solara Retail API running at `http://localhost:8000`
+- The Solara Retail API running at `http://localhost:9000`
 - `API_KEY` set in your `.env` file (default for local dev: `SOLARA-SECRET-2026`)
 
 ## Steps
@@ -15,7 +15,7 @@ description: Issue your first refund in under a minute
     ### Browse available transactions
 
     ```bash
-    curl http://localhost:8000/api/v1/transactions \
+    curl http://localhost:9000/api/v1/transactions \
       -H "X-API-Key: SOLARA-SECRET-2026"
     ```
   </Step>
@@ -26,7 +26,7 @@ description: Issue your first refund in under a minute
     Omit `item_ids` to refund the full transaction amount.
 
     ```bash
-    curl -X POST http://localhost:8000/api/v1/refunds \
+    curl -X POST http://localhost:9000/api/v1/refunds \
       -H "X-API-Key: SOLARA-SECRET-2026" \
       -H "Content-Type: application/json" \
       -d '{
@@ -44,7 +44,7 @@ description: Issue your first refund in under a minute
     ### Verify the audit trail
 
     ```bash
-    curl "http://localhost:8000/api/v1/audit?transaction_id=TXN-REG-001" \
+    curl "http://localhost:9000/api/v1/audit?transaction_id=TXN-REG-001" \
       -H "X-API-Key: SOLARA-SECRET-2026"
     ```
 
@@ -57,7 +57,7 @@ description: Issue your first refund in under a minute
 Supply `item_ids` to refund only specific items. Tax and shipping are refunded proportionally.
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/refunds \
+curl -X POST http://localhost:9000/api/v1/refunds \
   -H "X-API-Key: SOLARA-SECRET-2026" \
   -H "Content-Type: application/json" \
   -d '{
@@ -72,18 +72,18 @@ See [Scenario C](/docs/scenarios/scenario-c) for the full formula.
 
 ## Safe retries with idempotency
 
-Include `idempotency_key` to prevent duplicate refunds on network retries:
+Add an `Idempotency-Key` header to prevent duplicate refunds on network retries:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/refunds \
+curl -X POST http://localhost:9000/api/v1/refunds \
   -H "X-API-Key: SOLARA-SECRET-2026" \
   -H "Content-Type: application/json" \
+  -H "Idempotency-Key: refund-req-20260225-001" \
   -d '{
     "transaction_id": "TXN-REG-001",
     "operator_id": "op1",
-    "reason": "customer request",
-    "idempotency_key": "refund-req-20260225-001"
+    "reason": "customer request"
   }'
 ```
 
-If a refund with the same key already exists, the API returns `409 DUPLICATE_REFUND` with the existing refund's ID.
+If the same `Idempotency-Key` is sent again, the API returns the original refund with HTTP `200` and the header `Idempotent-Replayed: true` — no double-processing occurs.

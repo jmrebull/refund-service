@@ -25,7 +25,7 @@ It supports five refund scenarios, enforces strict business rules, and records e
 
 - **Financial precision** — All arithmetic uses `decimal.Decimal` with `ROUND_HALF_UP`. Floating-point is never used for monetary values.
 - **Immutable audit trail** — Every operation appends `REFUND_REQUESTED` and `REFUND_APPROVED` (or `REFUND_REJECTED`) events that are never modified or deleted.
-- **Idempotency** — Pass `idempotency_key` in the request body to safely retry without creating duplicates.
+- **Idempotency** — Pass an `Idempotency-Key` header to safely retry without creating duplicates. Replays return `200` with `Idempotent-Replayed: true`.
 - **Deterministic** — Refund amounts are computed entirely from data stored at purchase time. No live rate lookups.
 
 <Callout type="warn">

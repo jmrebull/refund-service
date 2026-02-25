@@ -9,7 +9,7 @@ Intelligent refund processing API for LatAm e-commerce. Built with FastAPI + Pyt
 ```bash
 cp .env.example .env
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 9000
 ```
 
 ### Option B: Docker
@@ -18,7 +18,7 @@ uvicorn app.main:app --reload --port 8000
 docker compose up --build
 ```
 
-Service runs at `http://localhost:8000`. OpenAPI docs at `http://localhost:8000/docs`. Developer docs at `http://localhost:8000/developer`.
+API runs at `http://localhost:9000`. Developer docs at `http://localhost:8000` (run `cd fumadocs && npm run dev`).
 
 ---
 
@@ -27,13 +27,13 @@ Service runs at `http://localhost:8000`. OpenAPI docs at `http://localhost:8000/
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | `/api/v1/refunds` | Required | Create a refund |
-| GET | `/api/v1/refunds/{refund_id}` | No | Get a refund by ID |
-| GET | `/api/v1/refunds?transaction_id=` | No | List refunds |
-| GET | `/api/v1/transactions/{transaction_id}` | No | Get a transaction |
-| GET | `/api/v1/transactions` | No | List transactions |
-| GET | `/api/v1/audit?transaction_id=&refund_id=` | No | Query audit log |
+| GET | `/api/v1/refunds/{refund_id}` | Required | Get a refund by ID |
+| GET | `/api/v1/refunds?transaction_id=` | Required | List refunds |
+| GET | `/api/v1/transactions/{transaction_id}` | Required | Get a transaction |
+| GET | `/api/v1/transactions` | Required | List transactions |
+| GET | `/api/v1/audit?transaction_id=&refund_id=` | Required | Query audit log |
 
-Authentication: `X-API-Key` header on all `POST` endpoints.
+Authentication: `X-API-Key` header required on all endpoints.
 
 ---
 
@@ -41,7 +41,7 @@ Authentication: `X-API-Key` header on all `POST` endpoints.
 
 ### Scenario A — Full refund, single payment method
 ```bash
-curl -X POST localhost:8000/api/v1/refunds \
+curl -X POST localhost:9000/api/v1/refunds \
   -H "X-API-Key: SOLARA-SECRET-2026" \
   -H "Content-Type: application/json" \
   -d '{"transaction_id":"TXN-REG-001","operator_id":"op1","reason":"customer request"}'
@@ -49,7 +49,7 @@ curl -X POST localhost:8000/api/v1/refunds \
 
 ### Scenario B — Full refund, split payment
 ```bash
-curl -X POST localhost:8000/api/v1/refunds \
+curl -X POST localhost:9000/api/v1/refunds \
   -H "X-API-Key: SOLARA-SECRET-2026" \
   -H "Content-Type: application/json" \
   -d '{"transaction_id":"TXN-SPLIT-001","operator_id":"op1","reason":"damaged item"}'
@@ -57,7 +57,7 @@ curl -X POST localhost:8000/api/v1/refunds \
 
 ### Scenario C — Partial refund (item subset)
 ```bash
-curl -X POST localhost:8000/api/v1/refunds \
+curl -X POST localhost:9000/api/v1/refunds \
   -H "X-API-Key: SOLARA-SECRET-2026" \
   -H "Content-Type: application/json" \
   -d '{"transaction_id":"TXN-REG-010","item_ids":["ITEM-REG-010-A"],"operator_id":"op2","reason":"wrong size"}'
@@ -65,7 +65,7 @@ curl -X POST localhost:8000/api/v1/refunds \
 
 ### Scenario D — Installment refund
 ```bash
-curl -X POST localhost:8000/api/v1/refunds \
+curl -X POST localhost:9000/api/v1/refunds \
   -H "X-API-Key: SOLARA-SECRET-2026" \
   -H "Content-Type: application/json" \
   -d '{"transaction_id":"TXN-INSTALL-001","operator_id":"op1","reason":"cancel order"}'
@@ -73,31 +73,36 @@ curl -X POST localhost:8000/api/v1/refunds \
 
 ### Scenario E — Cross-border (currency conversion)
 ```bash
-curl -X POST localhost:8000/api/v1/refunds \
+curl -X POST localhost:9000/api/v1/refunds \
   -H "X-API-Key: SOLARA-SECRET-2026" \
   -H "Content-Type: application/json" \
   -d '{"transaction_id":"TXN-CROSS-001","operator_id":"op1","reason":"item not received"}'
 ```
 
+### Safe retry with idempotency
+```bash
+curl -X POST localhost:9000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: refund-req-20260225-001" \
+  -d '{"transaction_id":"TXN-REG-001","operator_id":"op1","reason":"customer request"}'
+# First call: 201 Created
+# Retry with same key: 200 OK + Idempotent-Replayed: true
+```
+
 ### Rejected: chargeback transaction
 ```bash
-curl -X POST localhost:8000/api/v1/refunds \
+curl -X POST localhost:9000/api/v1/refunds \
   -H "X-API-Key: SOLARA-SECRET-2026" \
   -H "Content-Type: application/json" \
   -d '{"transaction_id":"TXN-CB-001","operator_id":"op1","reason":"refund attempt"}'
 # Expected: 422 INVALID_TRANSACTION_STATUS
 ```
 
-### Missing API key
-```bash
-curl -X POST localhost:8000/api/v1/refunds \
-  -d '{"transaction_id":"TXN-REG-001","operator_id":"op1","reason":"test"}'
-# Expected: 401 UNAUTHORIZED
-```
-
 ### Audit trail
 ```bash
-curl localhost:8000/api/v1/audit?transaction_id=TXN-SPLIT-001
+curl localhost:9000/api/v1/audit?transaction_id=TXN-SPLIT-001 \
+  -H "X-API-Key: SOLARA-SECRET-2026"
 ```
 
 ---
@@ -173,6 +178,6 @@ This service handles **refunds only**. Do not confuse with:
 - Rate limiting: 5 failed auth attempts → 429 for 60 seconds
 - 64KB request body limit
 - `extra="forbid"` on all Pydantic models (mass-assignment protection)
-- Idempotency keys prevent double-processing
+- Idempotency via `Idempotency-Key` header — replays return `200` + `Idempotent-Replayed: true`
 - Thread-safe in-memory store with `threading.Lock`
 - Production mode disables `/docs`, `/redoc`, and stack traces
