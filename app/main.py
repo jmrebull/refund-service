@@ -63,37 +63,12 @@ def create_app() -> FastAPI:
     application.include_router(audit_router)
 
     if not is_production():
+        _docs_template = os.path.join(os.path.dirname(__file__), "templates", "docs.html")
+
         @application.get("/docs", include_in_schema=False)
-        async def scalar_docs() -> HTMLResponse:
-            return HTMLResponse("""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Solara Retail — Refund API</title>
-  <style>
-    body { margin: 0; }
-    #api-reference { height: 100vh; }
-  </style>
-</head>
-<body>
-  <script
-    id="api-reference"
-    data-url="/openapi.json"
-    data-configuration='{
-      "theme": "saturn",
-      "layout": "modern",
-      "defaultHttpClient": {"targetKey": "shell", "clientKey": "curl"},
-      "servers": [{"url": "http://localhost:8000", "description": "Local"}],
-      "metadata": {
-        "title": "Solara Retail — Refund API",
-        "description": "Intelligent refund processing for LatAm e-commerce"
-      }
-    }'
-  ></script>
-  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-</body>
-</html>""")
+        async def custom_docs() -> HTMLResponse:
+            with open(_docs_template, encoding="utf-8") as f:
+                return HTMLResponse(f.read())
 
     # ── Developer docs (static) ─────────────────────────────────────────────
     docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs")

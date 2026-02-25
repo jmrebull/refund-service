@@ -18,12 +18,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if request.url.path in self._DOCS_PATHS:
             response.headers["Content-Security-Policy"] = (
                 "default-src 'none'; "
-                "script-src 'unsafe-inline' https://cdn.jsdelivr.net; "
-                "style-src 'unsafe-inline' https://cdn.jsdelivr.net; "
-                "img-src 'self' data: https://cdn.jsdelivr.net; "
-                "font-src https://cdn.jsdelivr.net; "
-                "connect-src 'self'; "
-                "worker-src blob:"
+                "script-src 'unsafe-inline'; "
+                "style-src 'unsafe-inline'; "
+                "connect-src 'self'"
             )
         else:
             response.headers["Content-Security-Policy"] = "default-src 'none'"

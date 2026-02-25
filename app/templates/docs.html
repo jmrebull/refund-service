@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solara — Refund API</title>
+  <style>
+    /* ─── RESET & TOKENS ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #07080e;
+      --sidebar:    #090b13;
+      --surface:    #0d1019;
+      --surface2:   #111520;
+      --border:     rgba(255,255,255,.065);
+      --border-hi:  rgba(255,255,255,.13);
+
+      --indigo:     #818cf8;
+      --cyan:       #22d3ee;
+      --green:      #34d399;
+      --amber:      #fbbf24;
+      --rose:       #fb7185;
+
+      --t1: #f1f5f9;
+      --t2: #94a3b8;
+      --t3: #4b5a6e;
+
+      --mono: 'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;
+      --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+
+      --sw: 264px;
+      --pw: 460px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--t1); overflow-x: hidden; }
+
+    ::-webkit-scrollbar            { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track      { background: transparent; }
+    ::-webkit-scrollbar-thumb      { background: var(--border-hi); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,.2); }
+
+    /* ─── LAYOUT ──────────────────────────────────────────────────────── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ─── SIDEBAR ─────────────────────────────────────────────────────── */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: var(--sw); height: 100vh;
+      background: var(--sidebar); border-right: 1px solid var(--border);
+      overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+    }
+    .sb-header { padding: 22px 18px 18px; border-bottom: 1px solid var(--border); }
+    .sb-brand  { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .sb-icon   {
+      width: 34px; height: 34px; flex-shrink: 0; border-radius: 9px;
+      background: linear-gradient(135deg, #6366f1, #22d3ee);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; box-shadow: 0 0 20px rgba(99,102,241,.3);
+    }
+    .sb-name  { font-size: 14px; font-weight: 600; color: var(--t1); line-height: 1.2; }
+    .sb-sub   { font-size: 11px; color: var(--t3); margin-top: 2px; }
+    .sb-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.2);
+      border-radius: 4px; padding: 2px 9px; font-size: 11px; font-weight: 500; color: var(--indigo);
+    }
+    .sb-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:#34d399; box-shadow: 0 0 6px #34d399; }
+    .sb-nav   { flex: 1; padding: 12px 0; }
+    .sb-group { padding: 14px 18px 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--t3); }
+    .sb-link  {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 18px; font-size: 13px; color: var(--t2);
+      cursor: pointer; transition: all .15s; border-left: 2px solid transparent;
+    }
+    .sb-link:hover  { color: var(--t1); background: rgba(255,255,255,.03); }
+    .sb-link.active { color: var(--indigo); border-left-color: var(--indigo); background: rgba(129,140,248,.07); }
+    .m-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ─── MAIN ────────────────────────────────────────────────────────── */
+    .main { margin-left: var(--sw); flex: 1; min-width: 0; }
+
+    /* ─── HERO ────────────────────────────────────────────────────────── */
+    .hero { position: relative; overflow: hidden; padding: 80px 64px 68px; border-bottom: 1px solid var(--border); }
+    .hero-glow {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 65% 90% at 0% 55%, rgba(99,102,241,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 65% at 100% 10%, rgba(34,211,238,.12) 0%, transparent 55%),
+        radial-gradient(ellipse 35% 45% at 65% 100%, rgba(244,114,182,.08) 0%, transparent 50%);
+    }
+    .hero-dots {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px);
+      background-size: 26px 26px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black, transparent);
+    }
+    .hero-inner { position: relative; max-width: 700px; }
+    .hero-pill  {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(129,140,248,.09); border: 1px solid rgba(129,140,248,.22);
+      border-radius: 100px; padding: 5px 14px 5px 9px;
+      font-size: 12px; font-weight: 500; color: #c7d2fe; margin-bottom: 28px;
+    }
+    .pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--indigo);
+      animation: pulse-ring 2.6s ease-in-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0 rgba(129,140,248,.7); }
+      70%  { box-shadow: 0 0 0 7px rgba(129,140,248,0); }
+      100% { box-shadow: 0 0 0 0 rgba(129,140,248,0); }
+    }
+    .hero h1 {
+      font-size: clamp(34px, 4.5vw, 54px); font-weight: 700; letter-spacing: -.035em; line-height: 1.07;
+      margin-bottom: 16px;
+      background: linear-gradient(140deg, #fff 15%, #c7d2fe 52%, #67e8f9 90%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-desc { font-size: 16px; color: var(--t2); line-height: 1.8; max-width: 520px; margin-bottom: 34px; }
+    .hero-desc code { font-family: var(--mono); font-size: 13px; background: rgba(255,255,255,.07); padding: 2px 7px; border-radius: 4px; color: #a5b4fc; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 48px; }
+    .htag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.035); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; color: var(--t3);
+    }
+    .htag.live { border-color: rgba(52,211,153,.32); background: rgba(52,211,153,.07); color: #6ee7b7; }
+    .htag .dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; box-shadow: 0 0 6px #34d399; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 600px; }
+    .stat {
+      background: rgba(255,255,255,.025); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px; transition: all .2s; cursor: default;
+    }
+    .stat:hover { border-color: rgba(129,140,248,.32); transform: translateY(-2px); background: rgba(129,140,248,.05); }
+    .stat-n {
+      font-size: 30px; font-weight: 700; letter-spacing: -.03em; line-height: 1;
+      background: linear-gradient(135deg, #a5b4fc, #67e8f9);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 5px;
+    }
+    .stat-l { font-size: 12px; color: var(--t3); font-weight: 500; }
+
+    /* ─── SECTION HEADERS ─────────────────────────────────────────────── */
+    .sec-head { padding: 52px 64px 28px; border-bottom: 1px solid var(--border); }
+    .sec-tag   { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--indigo); margin-bottom: 8px; }
+    .sec-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 8px; }
+    .sec-desc  { font-size: 14px; color: var(--t2); line-height: 1.75; max-width: 580px; }
+    .sec-desc code { font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 4px; color: #a5b4fc; }
+
+    /* ─── ENDPOINT ROW ────────────────────────────────────────────────── */
+    .ep       { display: grid; grid-template-columns: 1fr var(--pw); border-bottom: 1px solid var(--border); }
+    .ep-info  { padding: 40px 64px; border-right: 1px solid var(--border); min-width: 0; }
+    .ep-panel { padding: 36px 28px; background: var(--surface); min-width: 0; }
+    .ep-head  { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+
+    .badge { display: inline-flex; align-items: center; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 700; letter-spacing: .05em; font-family: var(--mono); }
+    .badge.get    { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.25); }
+    .badge.post   { background: rgba(129,140,248,.12); color: #818cf8; border: 1px solid rgba(129,140,248,.25); }
+
+    .ep-path { font-family: var(--mono); font-size: 15px; color: var(--t1); letter-spacing: -.01em; }
+    .ep-path .pp { color: var(--indigo); }
+    .ep-desc { font-size: 14px; color: var(--t2); line-height: 1.8; margin-bottom: 24px; }
+    .auth-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.2);
+      border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; color: var(--amber); margin-bottom: 28px;
+    }
+
+    /* Params table */
+    .pt    { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--t3); margin-bottom: 10px; }
+    .param { display: grid; grid-template-columns: 155px 80px 1fr; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; }
+    .pname { font-family: var(--mono); font-size: 12px; color: var(--t1); }
+    .ptype { font-family: var(--mono); font-size: 11px; color: var(--cyan); padding-top: 1px; }
+    .preq  { font-size: 10px; font-weight: 600; color: var(--rose); margin-top: 2px; }
+    .popt  { font-size: 10px; color: var(--t3); margin-top: 2px; }
+    .pdesc { font-size: 13px; color: var(--t2); line-height: 1.6; }
+    .pdesc code { font-family: var(--mono); font-size: 11px; background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 3px; }
+
+    /* ─── RESPONSE DOCS (left column) ────────────────────────────────── */
+    .resp-docs { margin-top: 28px; }
+    .resp-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .resp-item-desc { color: var(--t2); line-height: 1.5; padding-top: 1px; }
+
+    /* ─── PANEL HEADER BAR ────────────────────────────────────────────── */
+    .panel-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      gap: 8px;
+    }
+
+    /* Language tabs — compact pill style */
+    .lang-tabs {
+      display: flex;
+      gap: 2px;
+      background: rgba(0,0,0,.35);
+      border-radius: 7px;
+      padding: 3px;
+    }
+    .lang-tab {
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--t3);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .lang-tab.on { background: var(--surface2); color: var(--t1); }
+    .lang-tab:hover:not(.on) { color: var(--t2); }
+
+    /* Try it toggle button — distinct, on the right */
+    .try-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      background: rgba(99,102,241,.12);
+      border: 1px solid rgba(99,102,241,.28);
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #a5b4fc;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .try-toggle:hover { background: rgba(99,102,241,.2); color: #c7d2fe; }
+    .try-toggle.active {
+      background: linear-gradient(135deg, rgba(99,102,241,.3), rgba(34,211,238,.15));
+      color: #c7d2fe;
+      border-color: rgba(99,102,241,.5);
+    }
+
+    /* ─── CODE BLOCKS ─────────────────────────────────────────────────── */
+    .cb { background: #0d1117; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 14px; }
+    .cb-head { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; background: rgba(255,255,255,.025); border-bottom: 1px solid var(--border); font-size: 11px; color: var(--t3); }
+    .cb pre  { padding: 16px; overflow-x: auto; font-size: 12px; line-height: 1.75; font-family: var(--mono); color: #cdd6f4; }
+
+    .copy-btn { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--t3); padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all .15s; }
+    .copy-btn:hover { background: rgba(255,255,255,.1); color: var(--t1); }
+    .copy-btn.ok    { color: var(--green); border-color: rgba(52,211,153,.3); }
+
+    .res-badge { display: inline-flex; align-items: center; border-radius: 5px; padding: 2px 8px; font-size: 11px; font-family: var(--mono); font-weight: 600; }
+    .res-badge.ok  { background: rgba(52,211,153,.1); color: #34d399; border: 1px solid rgba(52,211,153,.2); }
+    .res-badge.err { background: rgba(248,113,113,.1); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
+
+    /* ─── TRY IT ──────────────────────────────────────────────────────── */
+    .try-form { padding-top: 2px; }
+    .try-f    { margin-bottom: 10px; }
+    .try-lbl  { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--t2); margin-bottom: 5px; font-family: var(--mono); }
+    .lbl-req  { color: var(--rose); font-size: 10px; font-family: var(--sans); font-weight: 400; }
+    .lbl-opt  { color: var(--t3);   font-size: 10px; font-family: var(--sans); font-weight: 400; }
+    .try-input {
+      width: 100%; background: rgba(0,0,0,.45); border: 1px solid var(--border-hi);
+      border-radius: 7px; padding: 8px 11px; font-size: 12px; font-family: var(--mono);
+      color: var(--t1); outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .try-input:focus { border-color: rgba(129,140,248,.55); box-shadow: 0 0 0 3px rgba(129,140,248,.1); }
+    .try-input::placeholder { color: var(--t3); }
+
+    .send-btn {
+      width: 100%; padding: 9px 16px; margin-top: 6px;
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      border: none; border-radius: 8px; color: #fff;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
+      box-shadow: 0 2px 14px rgba(99,102,241,.28); letter-spacing: .01em;
+    }
+    .send-btn:hover    { filter: brightness(1.12); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,102,241,.4); }
+    .send-btn:active   { transform: translateY(0); }
+    .send-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; filter: none; box-shadow: none; }
+
+    .try-resp      { margin-top: 16px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .try-resp-head { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: rgba(255,255,255,.03); border-bottom: 1px solid var(--border); font-size: 11px; flex-wrap: wrap; }
+    .try-resp-body {
+      background: #0d1117; padding: 14px;
+      font-family: var(--mono); font-size: 12px; line-height: 1.75;
+      max-height: 340px; overflow-y: auto; overflow-x: auto; white-space: pre;
+    }
+    .s-ok  { font-weight: 700; color: #34d399; }
+    .s-err { font-weight: 700; color: #f87171; }
+    .s-t   { color: var(--t3); }
+    .j-key { color: #89b4fa; }
+    .j-str { color: #a6e3a1; }
+    .j-num { color: #fab387; }
+    .j-bool{ color: #cba6f7; }
+    .j-null{ color: #f38ba8; }
+
+    /* ─── SCENARIOS ───────────────────────────────────────────────────── */
+    .sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; padding: 36px 64px; }
+    .sc-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px 20px; transition: all .2s; cursor: default;
+    }
+    .sc-card:hover { border-color: rgba(129,140,248,.35); transform: translateY(-2px); background: rgba(129,140,248,.04); }
+    .sc-letter {
+      width: 34px; height: 34px; border-radius: 9px; margin-bottom: 14px;
+      background: linear-gradient(135deg, rgba(129,140,248,.25), rgba(34,211,238,.18));
+      border: 1px solid rgba(129,140,248,.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: #c7d2fe;
+    }
+    .sc-name { font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+    .sc-desc { font-size: 12px; color: var(--t2); line-height: 1.65; }
+
+    /* ─── ERROR CODES ─────────────────────────────────────────────────── */
+    .err-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 0 64px 64px; }
+    .err-cell { padding: 14px 18px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+    .err-cell:nth-child(even)      { border-right: none; }
+    .err-cell:nth-last-child(-n+2) { border-bottom: none; }
+    .err-code { font-family: var(--mono); font-size: 12px; color: var(--rose); margin-bottom: 3px; }
+    .err-http { font-size: 11px; color: var(--t3); margin-bottom: 3px; }
+    .err-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
+
+    /* ─── UTILS ───────────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    @media (max-width: 1100px) {
+      :root { --pw: 360px; }
+    }
+    @media (max-width: 1000px) {
+      .ep { grid-template-columns: 1fr; }
+      .ep-info { border-right: none; }
+      .ep-panel { border-top: 1px solid var(--border); }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .hero, .ep-info, .sec-head { padding-left: 24px; padding-right: 24px; }
+      .ep-panel { padding: 24px; }
+      .sc-grid, .err-grid { margin-left: 24px; margin-right: 24px; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── SIDEBAR ──────────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sb-header">
+    <div class="sb-brand">
+      <div class="sb-icon">↩</div>
+      <div><div class="sb-name">Solara Retail</div><div class="sb-sub">Refund API Reference</div></div>
+    </div>
+    <span class="sb-badge">v1.0.0 &nbsp;·&nbsp; Live</span>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-group">Overview</div>
+    <a class="sb-link" data-target="hero">Introduction</a>
+    <a class="sb-link" data-target="scenarios">Scenarios</a>
+    <a class="sb-link" data-target="errors">Error Codes</a>
+    <div class="sb-group" style="margin-top:6px">Refunds</div>
+    <a class="sb-link" data-target="ep-post-refunds"><span class="m-dot" style="background:#818cf8"></span>Create Refund</a>
+    <a class="sb-link" data-target="ep-get-refund"><span class="m-dot" style="background:#34d399"></span>Get Refund</a>
+    <a class="sb-link" data-target="ep-list-refunds"><span class="m-dot" style="background:#34d399"></span>List Refunds</a>
+    <div class="sb-group" style="margin-top:6px">Transactions</div>
+    <a class="sb-link" data-target="ep-get-txn"><span class="m-dot" style="background:#34d399"></span>Get Transaction</a>
+    <a class="sb-link" data-target="ep-list-txns"><span class="m-dot" style="background:#34d399"></span>List Transactions</a>
+    <div class="sb-group" style="margin-top:6px">Audit</div>
+    <a class="sb-link" data-target="ep-audit"><span class="m-dot" style="background:#34d399"></span>Audit Log</a>
+  </div>
+</nav>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero">
+      <div class="hero-glow"></div><div class="hero-dots"></div>
+      <div class="hero-inner">
+        <div class="hero-pill"><span class="pulse"></span>Solara Retail &nbsp;·&nbsp; REST API</div>
+        <h1>Refund Reconciliation<br>API Reference</h1>
+        <p class="hero-desc">Intelligent refund processing for LatAm e-commerce. All financial math in <code>decimal.Decimal</code> with <code>ROUND_HALF_UP</code>. Every operation immutably recorded in the audit log.</p>
+        <div class="hero-tags">
+          <span class="htag live"><span class="dot"></span>Live</span>
+          <span class="htag">v1.0.0</span>
+          <span class="htag">REST · JSON</span>
+          <span class="htag">Auth: X-API-Key</span>
+          <span class="htag">localhost:8000</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="stat-n">6</div><div class="stat-l">Endpoints</div></div>
+          <div class="stat"><div class="stat-n">5</div><div class="stat-l">Scenarios</div></div>
+          <div class="stat"><div class="stat-n">11</div><div class="stat-l">Error Codes</div></div>
+          <div class="stat"><div class="stat-n">100%</div><div class="stat-l">Audited</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- API REFERENCE HEADER -->
+  <div class="sec-head" style="padding-bottom:0;border-bottom:none">
+    <div class="sec-tag">API Reference</div>
+    <div class="sec-title">Endpoints</div>
+    <div class="sec-desc"><code>POST</code> endpoints require <code>X-API-Key</code> header. <code>GET</code> endpoints are public. Click <strong>Try it</strong> on any endpoint to send a live request.</div>
+  </div>
+
+  <!-- ── POST /api/v1/refunds ──────────────────────────────────────── -->
+  <div class="ep" id="ep-post-refunds" style="border-top:1px solid var(--border);margin-top:28px">
+    <div class="ep-info">
+      <div class="ep-head">
+        <span class="badge post">POST</span>
+        <span class="ep-path">/api/v1/refunds</span>
+      </div>
+      <p class="ep-desc">Create a new refund for a captured or settled transaction. Supports full, partial, split-payment, installment, and cross-border scenarios.</p>
+      <div class="auth-pill">🔑 Requires X-API-Key header</div>
+      <div class="pt">Body Parameters</div>
+      <div class="param">
+        <div><div class="pname">transaction_id</div><div class="preq">required</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">Transaction to refund. Pattern: <code>^[A-Z0-9_-]+$</code>, max 50 chars.</div>
+      </div>
+      <div class="param">
+        <div><div class="pname">operator_id</div><div class="preq">required</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">ID of the operator initiating the refund.</div>
+      </div>
+      <div class="param">
+        <div><div class="pname">reason</div><div class="preq">required</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">Human-readable reason (1–500 chars).</div>
+      </div>
+      <div class="param">
+        <div><div class="pname">item_ids</div><div class="popt">optional</div></div>
+        <div class="ptype">string[]</div>
+        <div class="pdesc">Item IDs for partial refund. Omit for full refund. Max 100 items.</div>
+      </div>
+      <div class="param">
+        <div><div class="pname">idempotency_key</div><div class="popt">optional</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">Unique key to prevent duplicate processing.</div>
+      </div>
+
+      <!-- Response documentation -->
+      <div class="resp-docs">
+        <div class="pt">Responses</div>
+        <div class="resp-item">
+          <span class="res-badge ok">201</span>
+          <div class="resp-item-desc">Refund approved. Returns full refund object with <code>calculation_breakdown</code>.</div>
+        </div>
+        <div class="resp-item">
+          <span class="res-badge err">401</span>
+          <div class="resp-item-desc">UNAUTHORIZED — Missing or invalid X-API-Key.</div>
+        </div>
+        <div class="resp-item">
+          <span class="res-badge err">409</span>
+          <div class="resp-item-desc">DUPLICATE_REFUND — Full refund already exists for this transaction.</div>
+        </div>
+        <div class="resp-item">
+          <span class="res-badge err">422</span>
+          <div class="resp-item-desc">INVALID_TRANSACTION_STATUS — Transaction status does not allow refund.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ep-panel">
+      <div class="panel-bar">
+        <div class="lang-tabs">
+          <button class="lang-tab on" onclick="langTab(this,'t-curl-post')">curl</button>
+          <button class="lang-tab"    onclick="langTab(this,'t-py-post')">Python</button>
+          <button class="lang-tab"    onclick="langTab(this,'t-js-post')">JavaScript</button>
+        </div>
+        <button class="try-toggle" onclick="toggleTry(this)">⚡ Try it</button>
+      </div>
+
+      <div class="code-view">
+        <div class="cb" id="t-curl-post">
+          <div class="cb-head">Request<button class="copy-btn" onclick="cp(this)">Copy</button></div>
+          <pre>curl -X POST http://localhost:8000/api/v1/refunds \
+  -H "X-API-Key: SOLARA-SECRET-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "TXN-REG-001",
+    "operator_id": "op1",
+    "reason": "customer request"
+  }'</pre>
+        </div>
+        <div class="cb hidden" id="t-py-post">
+          <div class="cb-head">Request<button class="copy-btn" onclick="cp(this)">Copy</button></div>
+          <pre>import httpx
+
+r = httpx.post(
+    "http://localhost:8000/api/v1/refunds",
+    headers={"X-API-Key": "SOLARA-SECRET-2026"},
+    json={
+        "transaction_id": "TXN-REG-001",
+        "operator_id": "op1",
+        "reason": "customer request",
+    },
+)
+print(r.json())</pre>
+        </div>
+        <div class="cb hidden" id="t-js-post">
+          <div class="cb-head">Request<button class="copy-btn" onclick="cp(this)">Copy</button></div>
+          <pre>const res = await fetch(
+  "http://localhost:8000/api/v1/refunds",
+  {
+    method: "POST",
+    headers: {
+      "X-API-Key": "SOLARA-SECRET-2026",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      transaction_id: "TXN-REG-001",
+      operator_id: "op1",
+      reason: "customer request",
+    }),
+  }
+);
+const data = await res.json();</pre>
+        </div>
+      </div>
+
+      <!-- TRY IT FORM -->
+      <div class="try-form hidden">
+        <div class="try-f">
+          <div class="try-lbl">X-API-Key <span class="lbl-req">required</span></div>
+          <input class="try-input" data-p="X-API-Key" data-t="header" value="SOLARA-SECRET-2026" placeholder="SOLARA-SECRET-2026">
+        </div>
+        <div class="try-f">
+          <div class="try-lbl">transaction_id <span class="lbl-req">required</span></div>
+          <input class="try-input" data-p="transaction_id" data-t="body" value="TXN-REG-001" placeholder="TXN-REG-001">
+        </div>
+        <div class="try-f">
+          <div class="try-lbl">operator_id <span class="lbl-req">required</span></div>
+          <input class="try-input" data-p="operator_id" data-t="body" value="op1" placeholder="op1">
+        </div>
+        <div class="try-f">
+          <div class="try-lbl">reason <span class="lbl-req">required</span></div>
+          <input class="try-input" data-p="reason" data-t="body" value="customer request" placeholder="customer request">
+        </div>
+        <div class="try-f">
+          <div class="try-lbl">item_ids <span class="lbl-opt">optional · comma-separated</span></div>
+          <input class="try-input" data-p="item_ids" data-t="body" placeholder="ITEM-001, ITEM-002">
+        </div>
+        <div class="try-f">
+          <div class="try-lbl">idempotency_key <span class="lbl-opt">optional</span></div>
+          <input class="try-input" data-p="idempotency_key" data-t="body" placeholder="">
+        </div>
+        <button class="send-btn" onclick="send('POST','/api/v1/refunds',this)">Send Request</button>
+        <div class="try-resp hidden">
+          <div class="try-resp-head"></div>
+          <div class="try-resp-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GET /api/v1/refunds/{id} ──────────────────────────────────── -->
+  <div class="ep" id="ep-get-refund">
+    <div class="ep-info">
+      <div class="ep-head">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/api/v1/refunds/<span class="pp">{refund_id}</span></span>
+      </div>
+      <p class="ep-desc">Retrieve a single refund by its ID.</p>
+      <div class="pt" style="margin-top:16px">Path Parameters</div>
+      <div class="param">
+        <div><div class="pname">refund_id</div><div class="preq">required</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">The refund ID returned on creation (e.g. <code>RF-A1B2C3D4</code>).</div>
+      </div>
+
+      <!-- Response documentation -->
+      <div class="resp-docs">
+        <div class="pt">Responses</div>
+        <div class="resp-item">
+          <span class="res-badge ok">200</span>
+          <div class="resp-item-desc">OK — Refund found.</div>
+        </div>
+        <div class="resp-item">
+          <span class="res-badge err">404</span>
+          <div class="resp-item-desc">REFUND_NOT_FOUND — Refund does not exist.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ep-panel">
+      <div class="panel-bar">
+        <div class="lang-tabs">
+          <button class="lang-tab on" onclick="langTab(this,'t-curl-gr')">curl</button>
+        </div>
+        <button class="try-toggle" onclick="toggleTry(this)">⚡ Try it</button>
+      </div>
+
+      <div class="code-view">
+        <div class="cb" id="t-curl-gr">
+          <div class="cb-head">Request<button class="copy-btn" onclick="cp(this)">Copy</button></div>
+          <pre>curl http://localhost:8000/api/v1/refunds/RF-A1B2C3D4</pre>
+        </div>
+      </div>
+
+      <div class="try-form hidden">
+        <div class="try-f">
+          <div class="try-lbl">refund_id <span class="lbl-req">required</span></div>
+          <input class="try-input" data-p="refund_id" data-t="path" placeholder="RF-A1B2C3D4">
+        </div>
+        <button class="send-btn" onclick="send('GET','/api/v1/refunds/{refund_id}',this)">Send Request</button>
+        <div class="try-resp hidden"><div class="try-resp-head"></div><div class="try-resp-body"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GET /api/v1/refunds ───────────────────────────────────────── -->
+  <div class="ep" id="ep-list-refunds">
+    <div class="ep-info">
+      <div class="ep-head">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/api/v1/refunds</span>
+      </div>
+      <p class="ep-desc">List all refunds. Optionally filter by transaction.</p>
+      <div class="pt" style="margin-top:16px">Query Parameters</div>
+      <div class="param">
+        <div><div class="pname">transaction_id</div><div class="popt">optional</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">Filter refunds by transaction ID.</div>
+      </div>
+
+      <!-- Response documentation -->
+      <div class="resp-docs">
+        <div class="pt">Responses</div>
+        <div class="resp-item">
+          <span class="res-badge ok">200</span>
+          <div class="resp-item-desc">OK — Array of refunds (empty array if none match).</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ep-panel">
+      <div class="panel-bar">
+        <div class="lang-tabs">
+          <button class="lang-tab on" onclick="langTab(this,'t-curl-lr')">curl</button>
+        </div>
+        <button class="try-toggle" onclick="toggleTry(this)">⚡ Try it</button>
+      </div>
+
+      <div class="code-view">
+        <div class="cb" id="t-curl-lr">
+          <div class="cb-head">Request<button class="copy-btn" onclick="cp(this)">Copy</button></div>
+          <pre>curl "http://localhost:8000/api/v1/refunds?transaction_id=TXN-REG-001"</pre>
+        </div>
+      </div>
+
+      <div class="try-form hidden">
+        <div class="try-f">
+          <div class="try-lbl">transaction_id <span class="lbl-opt">optional</span></div>
+          <input class="try-input" data-p="transaction_id" data-t="query" placeholder="TXN-REG-001">
+        </div>
+        <button class="send-btn" onclick="send('GET','/api/v1/refunds',this)">Send Request</button>
+        <div class="try-resp hidden"><div class="try-resp-head"></div><div class="try-resp-body"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GET /api/v1/transactions/{id} ─────────────────────────────── -->
+  <div class="ep" id="ep-get-txn">
+    <div class="ep-info">
+      <div class="ep-head">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/api/v1/transactions/<span class="pp">{transaction_id}</span></span>
+      </div>
+      <p class="ep-desc">Retrieve a single transaction including its items, payment methods, and status.</p>
+      <div class="pt" style="margin-top:16px">Path Parameters</div>
+      <div class="param">
+        <div><div class="pname">transaction_id</div><div class="preq">required</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">The transaction ID (e.g. <code>TXN-REG-001</code>).</div>
+      </div>
+
+      <!-- Response documentation -->
+      <div class="resp-docs">
+        <div class="pt">Responses</div>
+        <div class="resp-item">
+          <span class="res-badge ok">200</span>
+          <div class="resp-item-desc">OK — Transaction with items and payment methods.</div>
+        </div>
+        <div class="resp-item">
+          <span class="res-badge err">404</span>
+          <div class="resp-item-desc">TRANSACTION_NOT_FOUND — Transaction does not exist.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ep-panel">
+      <div class="panel-bar">
+        <div class="lang-tabs">
+          <button class="lang-tab on" onclick="langTab(this,'t-curl-gt')">curl</button>
+        </div>
+        <button class="try-toggle" onclick="toggleTry(this)">⚡ Try it</button>
+      </div>
+
+      <div class="code-view">
+        <div class="cb" id="t-curl-gt">
+          <div class="cb-head">Request<button class="copy-btn" onclick="cp(this)">Copy</button></div>
+          <pre>curl http://localhost:8000/api/v1/transactions/TXN-REG-001</pre>
+        </div>
+      </div>
+
+      <div class="try-form hidden">
+        <div class="try-f">
+          <div class="try-lbl">transaction_id <span class="lbl-req">required</span></div>
+          <input class="try-input" data-p="transaction_id" data-t="path" value="TXN-REG-001" placeholder="TXN-REG-001">
+        </div>
+        <button class="send-btn" onclick="send('GET','/api/v1/transactions/{transaction_id}',this)">Send Request</button>
+        <div class="try-resp hidden"><div class="try-resp-head"></div><div class="try-resp-body"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GET /api/v1/transactions ──────────────────────────────────── -->
+  <div class="ep" id="ep-list-txns">
+    <div class="ep-info">
+      <div class="ep-head">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/api/v1/transactions</span>
+      </div>
+      <p class="ep-desc">List all transactions in the system.</p>
+
+      <!-- Response documentation -->
+      <div class="resp-docs">
+        <div class="pt">Responses</div>
+        <div class="resp-item">
+          <span class="res-badge ok">200</span>
+          <div class="resp-item-desc">OK — Array of all transactions.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ep-panel">
+      <div class="panel-bar">
+        <div class="lang-tabs">
+          <button class="lang-tab on" onclick="langTab(this,'t-curl-lt')">curl</button>
+        </div>
+        <button class="try-toggle" onclick="toggleTry(this)">⚡ Try it</button>
+      </div>
+
+      <div class="code-view">
+        <div class="cb" id="t-curl-lt">
+          <div class="cb-head">Request<button class="copy-btn" onclick="cp(this)">Copy</button></div>
+          <pre>curl http://localhost:8000/api/v1/transactions</pre>
+        </div>
+      </div>
+
+      <div class="try-form hidden">
+        <button class="send-btn" onclick="send('GET','/api/v1/transactions',this)">Send Request</button>
+        <div class="try-resp hidden"><div class="try-resp-head"></div><div class="try-resp-body"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GET /api/v1/audit ─────────────────────────────────────────── -->
+  <div class="ep" id="ep-audit">
+    <div class="ep-info">
+      <div class="ep-head">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/api/v1/audit</span>
+      </div>
+      <p class="ep-desc">Query the append-only audit log. Every operation generates at minimum two entries: <strong>REFUND_REQUESTED</strong> → <strong>REFUND_APPROVED</strong> or <strong>REFUND_REJECTED</strong>.</p>
+      <div class="pt" style="margin-top:16px">Query Parameters</div>
+      <div class="param">
+        <div><div class="pname">transaction_id</div><div class="popt">optional</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">Filter by transaction.</div>
+      </div>
+      <div class="param">
+        <div><div class="pname">refund_id</div><div class="popt">optional</div></div>
+        <div class="ptype">string</div>
+        <div class="pdesc">Filter by refund.</div>
+      </div>
+
+      <!-- Response documentation -->
+      <div class="resp-docs">
+        <div class="pt">Responses</div>
+        <div class="resp-item">
+          <span class="res-badge ok">200</span>
+          <div class="resp-item-desc">OK — Array of audit log entries.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ep-panel">
+      <div class="panel-bar">
+        <div class="lang-tabs">
+          <button class="lang-tab on" onclick="langTab(this,'t-curl-audit')">curl</button>
+        </div>
+        <button class="try-toggle" onclick="toggleTry(this)">⚡ Try it</button>
+      </div>
+
+      <div class="code-view">
+        <div class="cb" id="t-curl-audit">
+          <div class="cb-head">Request<button class="copy-btn" onclick="cp(this)">Copy</button></div>
+          <pre>curl "http://localhost:8000/api/v1/audit?transaction_id=TXN-SPLIT-001"</pre>
+        </div>
+      </div>
+
+      <div class="try-form hidden">
+        <div class="try-f">
+          <div class="try-lbl">transaction_id <span class="lbl-opt">optional</span></div>
+          <input class="try-input" data-p="transaction_id" data-t="query" placeholder="TXN-REG-001">
+        </div>
+        <div class="try-f">
+          <div class="try-lbl">refund_id <span class="lbl-opt">optional</span></div>
+          <input class="try-input" data-p="refund_id" data-t="query" placeholder="RF-A1B2C3D4">
+        </div>
+        <button class="send-btn" onclick="send('GET','/api/v1/audit',this)">Send Request</button>
+        <div class="try-resp hidden"><div class="try-resp-head"></div><div class="try-resp-body"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENARIOS ─────────────────────────────────────────────────── -->
+  <section id="scenarios" style="border-top:1px solid var(--border)">
+    <div class="sec-head">
+      <div class="sec-tag">Reference</div>
+      <div class="sec-title">Refund Scenarios</div>
+      <div class="sec-desc">Five supported scenarios, each with distinct calculation logic. The API detects the scenario automatically from the transaction data.</div>
+    </div>
+    <div class="sc-grid">
+      <div class="sc-card"><div class="sc-letter">A</div><div class="sc-name">Full · Single Method</div><div class="sc-desc">Refunds 100% of the transaction total back to the single payment method used at checkout.</div></div>
+      <div class="sc-card"><div class="sc-letter">B</div><div class="sc-name">Split Payment</div><div class="sc-desc">Distributes the refund proportionally across multiple payment methods based on their original weight.</div></div>
+      <div class="sc-card"><div class="sc-letter">C</div><div class="sc-name">Partial (Item Subset)</div><div class="sc-desc">Refunds a subset of items. Tax and shipping are refunded proportionally to the item subtotal ratio.</div></div>
+      <div class="sc-card"><div class="sc-letter">D</div><div class="sc-name">Installments</div><div class="sc-desc">Only charged installments are refundable. Formula: <code style="font-family:var(--mono);font-size:11px">installment_value × charged_count</code>.</div></div>
+      <div class="sc-card"><div class="sc-letter">E</div><div class="sc-name">Cross-Border</div><div class="sc-desc">Uses the exchange rate stored at purchase time — never a live rate. Response includes both local and USD amounts.</div></div>
+    </div>
+  </section>
+
+  <!-- ── ERROR CODES ───────────────────────────────────────────────── -->
+  <section id="errors" style="border-top:1px solid var(--border)">
+    <div class="sec-head">
+      <div class="sec-tag">Reference</div>
+      <div class="sec-title">Error Codes</div>
+      <div class="sec-desc">All errors follow the shape <code>{"error": {"code": "...", "message": "..."}}</code>. Stack traces are never exposed.</div>
+    </div>
+    <div class="err-grid">
+      <div class="err-cell"><div class="err-code">TRANSACTION_NOT_FOUND</div><div class="err-http">404</div><div class="err-desc">Transaction does not exist.</div></div>
+      <div class="err-cell"><div class="err-code">INVALID_TRANSACTION_STATUS</div><div class="err-http">422</div><div class="err-desc">Status does not allow refund (VOIDED, CHARGEBACKED, AUTHORIZED).</div></div>
+      <div class="err-cell"><div class="err-code">DUPLICATE_REFUND</div><div class="err-http">409</div><div class="err-desc">A full refund already exists for this transaction.</div></div>
+      <div class="err-cell"><div class="err-code">INVALID_ITEM_IDS</div><div class="err-http">422</div><div class="err-desc">One or more item IDs not found in the transaction.</div></div>
+      <div class="err-cell"><div class="err-code">REFUND_AMOUNT_EXCEEDED</div><div class="err-http">422</div><div class="err-desc">Refund amount exceeds the remaining refundable balance.</div></div>
+      <div class="err-cell"><div class="err-code">INSTALLMENT_NOT_CHARGED</div><div class="err-http">422</div><div class="err-desc">No installments have been charged yet.</div></div>
+      <div class="err-cell"><div class="err-code">UNAUTHORIZED</div><div class="err-http">401</div><div class="err-desc">Missing or invalid X-API-Key header.</div></div>
+      <div class="err-cell"><div class="err-code">CALCULATION_ERROR</div><div class="err-http">422</div><div class="err-desc">Financial guard triggered (e.g. zero-division protection).</div></div>
+      <div class="err-cell"><div class="err-code">RATE_LIMITED</div><div class="err-http">429</div><div class="err-desc">5 failed auth attempts → locked 60 s.</div></div>
+      <div class="err-cell"><div class="err-code">REQUEST_TOO_LARGE</div><div class="err-http">413</div><div class="err-desc">Request body exceeds 64 KB.</div></div>
+      <div class="err-cell" style="border-bottom:none"><div class="err-code">INTERNAL_ERROR</div><div class="err-http">500</div><div class="err-desc">Unexpected error. No internal details leaked.</div></div>
+      <div class="err-cell" style="border-bottom:none;border-right:none"></div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+  // ── LANGUAGE TAB SWITCHER ─────────────────────────────────────────
+  function langTab(btn, showId) {
+    const panel = btn.closest('.ep-panel');
+    panel.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('on'));
+    btn.classList.add('on');
+    panel.querySelectorAll('.cb[id]').forEach(el => el.classList.add('hidden'));
+    panel.querySelector('#' + showId)?.classList.remove('hidden');
+  }
+
+  // ── TRY IT TOGGLE ─────────────────────────────────────────────────
+  function toggleTry(btn) {
+    const panel = btn.closest('.ep-panel');
+    const isActive = btn.classList.toggle('active');
+    panel.querySelector('.code-view').classList.toggle('hidden', isActive);
+    panel.querySelector('.try-form').classList.toggle('hidden', !isActive);
+    btn.textContent = isActive ? '← Examples' : '⚡ Try it';
+  }
+
+  // ── COPY BUTTON ───────────────────────────────────────────────────
+  function cp(btn) {
+    const text = btn.closest('.cb').querySelector('pre').textContent.trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!'; btn.classList.add('ok');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 2000);
+    });
+  }
+
+  // ── SEND REQUEST ──────────────────────────────────────────────────
+  async function send(method, urlTpl, btn) {
+    const form    = btn.closest('.try-form');
+    const respEl  = form.querySelector('.try-resp');
+    const head    = respEl.querySelector('.try-resp-head');
+    const body    = respEl.querySelector('.try-resp-body');
+
+    btn.disabled = true;
+    respEl.classList.remove('hidden');
+    head.innerHTML = '<span class="s-t">Sending…</span>';
+    body.textContent = '';
+
+    let url      = 'http://localhost:8000' + urlTpl;
+    const headers = {};
+    const bodyObj = {};
+    const qp      = new URLSearchParams();
+    let hasBody   = false;
+
+    form.querySelectorAll('[data-p]').forEach(input => {
+      const name = input.dataset.p;
+      const type = input.dataset.t;
+      const val  = input.value.trim();
+      if (!val) return;
+      if (type === 'header') { headers[name] = val; }
+      else if (type === 'path')  { url = url.replace('{' + name + '}', encodeURIComponent(val)); }
+      else if (type === 'query') { qp.set(name, val); }
+      else if (type === 'body')  {
+        hasBody = true;
+        bodyObj[name] = name === 'item_ids'
+          ? val.split(',').map(s => s.trim()).filter(Boolean)
+          : val;
+      }
+    });
+
+    if (qp.toString()) url += '?' + qp.toString();
+    if (hasBody) headers['Content-Type'] = 'application/json';
+
+    try {
+      const opts = { method, headers };
+      if (hasBody) opts.body = JSON.stringify(bodyObj);
+      const res   = await fetch(url, opts);
+      const path  = url.replace('http://localhost:8000', '');
+      const data  = await res.json().catch(() => null);
+      const sc    = res.status;
+
+      head.innerHTML =
+        `<span class="${sc < 300 ? 's-ok' : 's-err'}">${sc} ${res.statusText}</span>` +
+        `<span class="s-t">· ${method} ${path}</span>`;
+      body.innerHTML = data ? hl(JSON.stringify(data, null, 2)) : '<span class="s-t">(empty)</span>';
+    } catch (e) {
+      head.innerHTML = '<span class="s-err">Network Error — is the server running?</span>';
+      body.textContent = e.message;
+    }
+
+    btn.disabled = false;
+  }
+
+  // ── JSON SYNTAX HIGHLIGHT ─────────────────────────────────────────
+  function hl(json) {
+    return json
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"([^"\n]+)"(\s*:)/g,  '<span class="j-key">"$1"</span>$2')
+      .replace(/:\s*"([^"\n]*)"/g,    ': <span class="j-str">"$1"</span>')
+      .replace(/:\s*(-?\d+\.?\d*)/g,  ': <span class="j-num">$1</span>')
+      .replace(/:\s*(true|false)/g,   ': <span class="j-bool">$1</span>')
+      .replace(/:\s*(null)/g,         ': <span class="j-null">$1</span>');
+  }
+
+  // ── ACTIVE NAV ON SCROLL ──────────────────────────────────────────
+  const targets = ['hero','ep-post-refunds','ep-get-refund','ep-list-refunds',
+                   'ep-get-txn','ep-list-txns','ep-audit','scenarios','errors'];
+  const links = document.querySelectorAll('.sb-link[data-target]');
+
+  window.addEventListener('scroll', () => {
+    let current = targets[0];
+    for (const id of targets) {
+      const el = document.getElementById(id);
+      if (el && window.scrollY >= el.offsetTop - 140) current = id;
+    }
+    links.forEach(l => l.classList.toggle('active', l.dataset.target === current));
+  }, { passive: true });
+
+  links.forEach(l => l.addEventListener('click', () => {
+    document.getElementById(l.dataset.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+</script>
+</body>
+</html>
