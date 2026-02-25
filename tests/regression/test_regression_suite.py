@@ -117,6 +117,23 @@ def test_duplicate_full_refund_always_rejected(client, auth_headers):
     assert resp.status_code == 409
 
 
+def test_idempotency_key_always_prevents_double_processing(client, auth_headers):
+    """Idempotency key must always return the same refund_id and never re-process."""
+    headers = {**auth_headers, "Idempotency-Key": "regression-idem-001"}
+    payload = {"transaction_id": "TXN-REG-008", "operator_id": "op1", "reason": "test"}
+    r1 = client.post("/api/v1/refunds", json=payload, headers=headers)
+    r2 = client.post("/api/v1/refunds", json=payload, headers=headers)
+    r3 = client.post("/api/v1/refunds", json=payload, headers=headers)
+    assert r1.status_code == 201
+    assert r2.status_code == 200 and r2.headers.get("Idempotent-Replayed") == "true"
+    assert r3.status_code == 200 and r3.headers.get("Idempotent-Replayed") == "true"
+    # All three calls return the exact same refund_id
+    assert r1.json()["data"]["refund_id"] == r2.json()["data"]["refund_id"] == r3.json()["data"]["refund_id"]
+    # Only one refund was actually created in the store
+    from app.repository.store import store
+    assert len(store.get_refunds_by_transaction("TXN-REG-008")) == 1
+
+
 def test_zero_division_guards_never_raise_500(client, auth_headers):
     """All calculation guards must return 422, never 500."""
     # Attempt refund on transactions that would trigger calculation issues

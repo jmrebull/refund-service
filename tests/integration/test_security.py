@@ -148,6 +148,28 @@ def test_idempotency_key_prevents_duplicate_processing(client, auth_headers):
     assert resp1.json()["data"]["refund_id"] == resp2.json()["data"]["refund_id"]
 
 
+def test_idempotency_key_in_body_is_rejected(client, auth_headers):
+    """idempotency_key is a header concern — sending it in the body must return 422."""
+    resp = client.post(
+        "/api/v1/refunds",
+        json={"transaction_id": "TXN-REG-001", "operator_id": "op1", "reason": "test",
+              "idempotency_key": "should-be-in-header"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 422
+
+
+def test_without_idempotency_key_second_request_is_not_replay(client, auth_headers):
+    """Without an Idempotency-Key header, a second identical request is a new operation
+    and is rejected as a duplicate full refund (409), not silently replayed."""
+    payload = {"transaction_id": "TXN-REG-001", "operator_id": "op1", "reason": "test"}
+    resp1 = client.post("/api/v1/refunds", json=payload, headers=auth_headers)
+    resp2 = client.post("/api/v1/refunds", json=payload, headers=auth_headers)
+    assert resp1.status_code == 201
+    assert resp2.status_code == 409
+    assert "Idempotent-Replayed" not in resp2.headers
+
+
 def test_audit_log_cannot_be_deleted(client):
     client.post(
         "/api/v1/refunds",

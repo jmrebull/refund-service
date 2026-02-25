@@ -108,6 +108,21 @@ def test_idempotency_replay_returns_cached_result():
     assert result1.refund_id == result2.refund_id
 
 
+def test_no_idempotency_key_always_returns_not_replayed():
+    """Without a key, every successful call returns was_replayed=False."""
+    from app.services.refund_service import process_refund
+    result, replayed = process_refund(_req(transaction_id="TXN-REG-001"), "req-1")
+    assert not replayed
+    assert result.idempotency_key is None
+
+
+def test_idempotency_key_stored_on_result():
+    """The idempotency key is persisted on the RefundResult for traceability."""
+    from app.services.refund_service import process_refund
+    result, _ = process_refund(_req(transaction_id="TXN-REG-001"), "req-1", "IDEM-TRACE-KEY")
+    assert result.idempotency_key == "IDEM-TRACE-KEY"
+
+
 def test_refundable_balance_exhausted_after_partial_refunds():
     # Two partial refunds drain the balance → third attempt hits L160 (remaining <= 0)
     from app.services.refund_service import process_refund
