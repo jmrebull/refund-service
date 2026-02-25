@@ -4,6 +4,7 @@ FastAPI application entry point.
 Registers middleware (in order), routes, exception handlers,
 and mounts the static developer docs.
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,12 +29,18 @@ def create_app() -> FastAPI:
     docs_url = None if is_production() else "/docs"
     redoc_url = None if is_production() else "/redoc"
 
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        load_seed_data()
+        yield
+
     application = FastAPI(
         title="Solara Retail — Refund Reconciliation Service",
         description="Intelligent refund processing for LatAm e-commerce.",
         version="1.0.0",
         docs_url=docs_url,
         redoc_url=redoc_url,
+        lifespan=lifespan,
     )
 
     # ── Middleware stack (order matters) ────────────────────────────────────
@@ -68,11 +75,6 @@ def create_app() -> FastAPI:
             status_code=500,
             content={"error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred"}},
         )
-
-    # ── Startup ──────────────────────────────────────────────────────────────
-    @application.on_event("startup")
-    async def on_startup():
-        load_seed_data()
 
     return application
 
