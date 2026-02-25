@@ -10,3 +10,34 @@
   --color-fd-primary: hsl(243, 100%, 68%);
   --color-fd-primary-foreground: hsl(0, 0%, 100%);
 }
+
+/* ── Background: dot grid + radial glow ────────────────────────────────── */
+body {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.065) 1px, transparent 1px),
+    radial-gradient(ellipse 60% 55% at 15% 0%,
+      color-mix(in srgb, hsl(243, 100%, 68%) 20%, transparent) 0%,
+      transparent 70%),
+    radial-gradient(ellipse 55% 50% at 85% 0%,
+      color-mix(in srgb, #30d3f9 13%, transparent) 0%,
+      transparent 70%),
+    radial-gradient(ellipse 45% 40% at 50% 0%,
+      color-mix(in srgb, hsl(280, 100%, 65%) 9%, transparent) 0%,
+      transparent 60%);
+  background-size: 28px 28px, 100% 75vh, 100% 75vh, 100% 65vh;
+  background-attachment: fixed;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+}
+
+:root:not(.dark) body {
+  background-image:
+    radial-gradient(circle, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    radial-gradient(ellipse 60% 55% at 15% 0%,
+      color-mix(in srgb, hsl(243, 100%, 68%) 8%, transparent) 0%,
+      transparent 70%),
+    radial-gradient(ellipse 55% 50% at 85% 0%,
+      color-mix(in srgb, #30d3f9 5%, transparent) 0%,
+      transparent 70%);
+  background-size: 28px 28px, 100% 65vh, 100% 65vh;
+  background-repeat: repeat, no-repeat, no-repeat;
+}
