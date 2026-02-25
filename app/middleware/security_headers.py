@@ -7,7 +7,7 @@ from app.config import is_production
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """OWASP A05: Add security headers to every response."""
 
-    _DOCS_PATHS = {"/docs", "/redoc", "/openapi.json"}
+    _DOCS_PATHS = {"/docs", "/openapi.json"}
 
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
@@ -20,8 +20,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "default-src 'none'; "
                 "script-src 'unsafe-inline' https://cdn.jsdelivr.net; "
                 "style-src 'unsafe-inline' https://cdn.jsdelivr.net; "
-                "img-src 'self' data: https://fastapi.tiangolo.com; "
-                "font-src https://cdn.jsdelivr.net"
+                "img-src 'self' data: https://cdn.jsdelivr.net; "
+                "font-src https://cdn.jsdelivr.net; "
+                "connect-src 'self'; "
+                "worker-src blob:"
             )
         else:
             response.headers["Content-Security-Policy"] = "default-src 'none'"

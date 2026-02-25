@@ -6,7 +6,7 @@ and mounts the static developer docs.
 """
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
@@ -26,8 +26,8 @@ from seed_data import load_seed_data
 
 
 def create_app() -> FastAPI:
-    docs_url = None if is_production() else "/docs"
-    redoc_url = None if is_production() else "/redoc"
+    docs_url = None
+    redoc_url = None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -61,6 +61,39 @@ def create_app() -> FastAPI:
     application.include_router(refunds_router)
     application.include_router(transactions_router)
     application.include_router(audit_router)
+
+    if not is_production():
+        @application.get("/docs", include_in_schema=False)
+        async def scalar_docs() -> HTMLResponse:
+            return HTMLResponse("""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Solara Retail — Refund API</title>
+  <style>
+    body { margin: 0; }
+    #api-reference { height: 100vh; }
+  </style>
+</head>
+<body>
+  <script
+    id="api-reference"
+    data-url="/openapi.json"
+    data-configuration='{
+      "theme": "saturn",
+      "layout": "modern",
+      "defaultHttpClient": {"targetKey": "shell", "clientKey": "curl"},
+      "servers": [{"url": "http://localhost:8000", "description": "Local"}],
+      "metadata": {
+        "title": "Solara Retail — Refund API",
+        "description": "Intelligent refund processing for LatAm e-commerce"
+      }
+    }'
+  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+</body>
+</html>""")
 
     # ── Developer docs (static) ─────────────────────────────────────────────
     docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs")
