@@ -186,9 +186,118 @@ def test_guard_zero_installments():
 
 
 def test_guard_zero_exchange_rate():
-    # Use model_construct to bypass Pydantic's gt=0 constraint and test the calculator guard
-    from app.models.transaction import Transaction
+    # Use model_copy to bypass Pydantic's gt=0 constraint and test the calculator guard
     txn = _make_transaction()
     txn_bad = txn.model_copy(update={"is_cross_border": True, "exchange_rate_to_usd": Decimal("0"), "currency": "BRL"})
     with pytest.raises(CalculationError, match="exchange rate is zero"):
         calculate_cross_border_refund(txn_bad, None, Decimal("0"))
+
+
+def test_guard_zero_total_in_full_refund():
+    # model_construct bypasses Pydantic's gt=0 on total
+    from app.models.transaction import Transaction
+    txn = Transaction.model_construct(
+        id="TXN-ZERO",
+        status=TransactionStatus.CAPTURED,
+        currency="USD",
+        subtotal=Decimal("10.00"),
+        tax=Decimal("0.00"),
+        shipping=Decimal("0.00"),
+        total=Decimal("0"),
+        items=[Item(id="ITEM-A", name="A", unit_price=Decimal("10.00"), quantity=1)],
+        payments=[PaymentMethod.model_construct(id="P1", type=PaymentMethodType.CARD, amount=Decimal("10"), currency="USD")],
+        merchant_id="M1",
+        is_cross_border=False,
+        exchange_rate_to_usd=None,
+    )
+    with pytest.raises(CalculationError, match="transaction total is zero"):
+        calculate_full_refund(txn)
+
+
+def test_guard_zero_total_in_partial_refund():
+    # subtotal > 0 but total = 0 to skip the subtotal guard and hit the total guard
+    from app.models.transaction import Transaction
+    txn = Transaction.model_construct(
+        id="TXN-ZERO-TOTAL",
+        status=TransactionStatus.CAPTURED,
+        currency="USD",
+        subtotal=Decimal("10.00"),
+        tax=Decimal("0.00"),
+        shipping=Decimal("0.00"),
+        total=Decimal("0"),
+        items=[Item(id="ITEM-A", name="A", unit_price=Decimal("10.00"), quantity=1)],
+        payments=[PaymentMethod.model_construct(id="P1", type=PaymentMethodType.CARD, amount=Decimal("10"), currency="USD")],
+        merchant_id="M1",
+        is_cross_border=False,
+        exchange_rate_to_usd=None,
+    )
+    with pytest.raises(CalculationError, match="transaction total is zero"):
+        calculate_partial_refund(txn, ["ITEM-A"], Decimal("0"))
+
+
+def test_partial_refund_cross_border_sets_usd():
+    # Calls calculate_partial_refund directly on a cross-border txn — covers lines 183-185
+    txn = _make_transaction(is_cross_border=True, exchange_rate_to_usd=Decimal("5.20"), currency="BRL")
+    bd = calculate_partial_refund(txn, ["ITEM-A"], Decimal("0"))
+    assert bd.usd_equivalent is not None
+    assert bd.exchange_rate_used == Decimal("5.20")
+
+
+def test_guard_no_installment_payment():
+    # Transaction with no installments_total — covers L217 in calculate_installment_refund
+    txn = _make_transaction()  # has plain CARD payment without installments
+    with pytest.raises(CalculationError, match="No installment payment method found"):
+        calculate_installment_refund(txn, Decimal("0"))
+
+
+def test_guard_zero_total_in_installment_refund():
+    # installments present but total=0 — covers L223
+    bad_payment = PaymentMethod.model_construct(
+        id="PAY-INST",
+        type=PaymentMethodType.CARD,
+        amount=Decimal("64.00"),
+        currency="USD",
+        installments_total=6,
+        installments_charged=3,
+        card_last4=None,
+    )
+    from app.models.transaction import Transaction
+    txn = Transaction.model_construct(
+        id="TXN-ZERO-INST",
+        status=TransactionStatus.CAPTURED,
+        currency="USD",
+        subtotal=Decimal("50.00"),
+        tax=Decimal("9.00"),
+        shipping=Decimal("5.00"),
+        total=Decimal("0"),
+        items=[Item(id="ITEM-A", name="A", unit_price=Decimal("30.00"), quantity=1)],
+        payments=[bad_payment],
+        merchant_id="M1",
+        is_cross_border=False,
+        exchange_rate_to_usd=None,
+    )
+    with pytest.raises(CalculationError, match="transaction total is zero"):
+        calculate_installment_refund(txn, Decimal("0"))
+
+
+def test_calculate_usd_equivalent_direct_zero_rate():
+    # Call _calculate_usd_equivalent directly to cover L266
+    from app.engine.calculator import _calculate_usd_equivalent
+    with pytest.raises(CalculationError, match="exchange rate is zero"):
+        _calculate_usd_equivalent(Decimal("100.00"), Decimal("0"))
+
+
+def test_guard_missing_exchange_rate_cross_border():
+    # is_cross_border=True but exchange_rate_to_usd=None — covers L294
+    txn = _make_transaction(is_cross_border=True, exchange_rate_to_usd=None)
+    with pytest.raises(CalculationError, match="missing exchange_rate_to_usd"):
+        calculate_cross_border_refund(txn, None, Decimal("0"))
+
+
+def test_cross_border_partial_refund_with_items():
+    # item_ids provided to cross-border refund — covers L300-301
+    txn = _make_transaction(is_cross_border=True, exchange_rate_to_usd=Decimal("5.20"), currency="BRL")
+    bd = calculate_cross_border_refund(txn, ["ITEM-A"], Decimal("0"))
+    assert "E" in bd.scenario
+    assert "partial" in bd.scenario.lower()
+    assert bd.usd_equivalent is not None

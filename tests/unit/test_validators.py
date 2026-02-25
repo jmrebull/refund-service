@@ -98,6 +98,33 @@ def test_installment_exceeds_charged():
     assert exc_info.value.code == "INSTALLMENT_NOT_CHARGED"
 
 
+def test_idempotency_key_duplicate_via_validator():
+    # Save a refund with an idempotency key, then call validator directly — covers L111-113
+    from app.services.refund_service import process_refund
+    process_refund(_req(transaction_id="TXN-REG-001", idempotency_key="IDEM-KEY-DIRECT"), "req-1")
+    # Call the validator directly (bypassing service-level idempotency check)
+    with pytest.raises(ValidationError) as exc_info:
+        validate_refund_request(_req(transaction_id="TXN-REG-002", idempotency_key="IDEM-KEY-DIRECT"))
+    assert exc_info.value.code == "DUPLICATE_REFUND"
+    assert exc_info.value.http_status == 409
+
+
+def test_refundable_balance_exhausted_after_partial_refunds():
+    # Two partial refunds drain the balance → third attempt hits L160 (remaining <= 0)
+    from app.services.refund_service import process_refund
+    txn = store.get_transaction("TXN-REG-001")
+    item_a = txn.items[0].id
+    item_b = txn.items[1].id
+    # Refund item A then item B — together they exhaust the full balance
+    process_refund(_req(transaction_id="TXN-REG-001", item_ids=[item_a]), "req-1")
+    process_refund(_req(transaction_id="TXN-REG-001", item_ids=[item_b]), "req-2")
+    # Full refund attempt: has_full_refund returns None (both refunds have item_ratio set)
+    # but _validate_refundable_balance finds remaining = 0 and raises
+    with pytest.raises(ValidationError) as exc_info:
+        validate_refund_request(_req(transaction_id="TXN-REG-001"))
+    assert exc_info.value.code == "REFUND_AMOUNT_EXCEEDED"
+
+
 def test_valid_partial_refund_passes():
     txn = store.get_transaction("TXN-REG-001")
     item_id = txn.items[0].id

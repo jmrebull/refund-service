@@ -94,7 +94,7 @@ def _validate_transaction_status(transaction: Transaction) -> None:
             details={"status": transaction.status.value},
         )
 
-    if transaction.status not in allowed:
+    if transaction.status not in allowed:  # pragma: no cover — all enum values explicitly handled above
         raise ValidationError(
             code="INVALID_TRANSACTION_STATUS",
             message=f"Transaction {transaction.id} has status {transaction.status.value}, which does not allow refunds.",
