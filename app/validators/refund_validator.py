@@ -152,7 +152,11 @@ def _validate_item_ids(item_ids: list[str], transaction: Transaction) -> None:
 
 
 def _validate_refundable_balance(request: RefundRequest, transaction: Transaction) -> None:
-    """Rule 5: Refund must not exceed remaining refundable balance."""
+    """Rule 5: Refund must not exceed remaining refundable balance.
+
+    For partial refunds, the estimated amount (items + proportional tax + shipping)
+    is pre-calculated here to surface the error before reaching the engine.
+    """
     already_refunded = store.get_total_refunded(transaction.id)
     remaining = transaction.total - already_refunded
 
@@ -167,9 +171,25 @@ def _validate_refundable_balance(request: RefundRequest, transaction: Transactio
             },
         )
 
-    # For partial refunds, calculate what the refund would be to check against balance
-    # Full check done after calculation; here we just guard against obvious over-refund
-    # when item_ids are provided, the calculation engine will determine the exact amount
+    if request.item_ids and transaction.subtotal > Decimal("0"):
+        requested_items = [item for item in transaction.items if item.id in request.item_ids]
+        items_subtotal = sum(item.unit_price * item.quantity for item in requested_items)
+        ratio = items_subtotal / transaction.subtotal
+        estimated_refund = (items_subtotal + transaction.tax * ratio + transaction.shipping * ratio).quantize(Decimal("0.01"))
+        if estimated_refund > remaining:
+            raise ValidationError(
+                code="REFUND_AMOUNT_EXCEEDED",
+                message=(
+                    f"Estimated refund of {estimated_refund} {transaction.currency} "
+                    f"exceeds remaining refundable balance of {remaining} {transaction.currency}"
+                ),
+                details={
+                    "estimated_refund": str(estimated_refund),
+                    "remaining_refundable": str(remaining),
+                    "transaction_total": str(transaction.total),
+                    "already_refunded": str(already_refunded),
+                },
+            )
 
 
 def _validate_installment_constraints(transaction: Transaction) -> None:

@@ -22,8 +22,13 @@ def test_post_with_wrong_api_key_returns_401(client):
     assert resp.status_code == 401
 
 
-def test_get_requests_do_not_require_api_key(client):
-    resp = client.get("/api/v1/transactions")
+def test_get_requests_require_api_key(client, auth_headers):
+    # All endpoints require authentication — financial data must not be publicly accessible
+    for path in ["/api/v1/transactions", "/api/v1/refunds", "/api/v1/audit"]:
+        resp = client.get(path)
+        assert resp.status_code == 401, f"Expected 401 for GET {path} without auth, got {resp.status_code}"
+    # With valid key they succeed
+    resp = client.get("/api/v1/transactions", headers=auth_headers)
     assert resp.status_code == 200
 
 

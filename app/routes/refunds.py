@@ -50,7 +50,11 @@ async def create_refund(
 
 
 @router.get("/{refund_id}")
-async def get_refund_by_id(refund_id: str, request: Request) -> dict:
+async def get_refund_by_id(
+    refund_id: str,
+    request: Request,
+    _: str = Depends(require_api_key),
+) -> dict:
     """Retrieve a single refund by its ID."""
     result = get_refund(refund_id)
     if result is None:
@@ -62,7 +66,11 @@ async def get_refund_by_id(refund_id: str, request: Request) -> dict:
 
 
 @router.get("")
-async def list_refunds_endpoint(transaction_id: Optional[str] = None, request: Request = None) -> dict:
+async def list_refunds_endpoint(
+    transaction_id: Optional[str] = None,
+    request: Request = None,
+    _: str = Depends(require_api_key),
+) -> dict:
     """List all refunds, optionally filtered by transaction_id."""
     results = list_refunds(transaction_id=transaction_id)
     return _envelope([r.model_dump(mode="json") for r in results], request)

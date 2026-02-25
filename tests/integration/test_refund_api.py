@@ -81,7 +81,7 @@ def test_get_refund_by_id(client, auth_headers):
         headers=auth_headers,
     )
     refund_id = create_resp.json()["data"]["refund_id"]
-    get_resp = client.get(f"/api/v1/refunds/{refund_id}")
+    get_resp = client.get(f"/api/v1/refunds/{refund_id}", headers=auth_headers)
     assert get_resp.status_code == 200
     assert get_resp.json()["data"]["refund_id"] == refund_id
 
@@ -92,13 +92,13 @@ def test_get_refunds_by_transaction(client, auth_headers):
         json={"transaction_id": "TXN-REG-003", "operator_id": "op1", "reason": "test"},
         headers=auth_headers,
     )
-    resp = client.get("/api/v1/refunds?transaction_id=TXN-REG-003")
+    resp = client.get("/api/v1/refunds?transaction_id=TXN-REG-003", headers=auth_headers)
     assert resp.status_code == 200
     assert len(resp.json()["data"]) >= 1
 
 
-def test_refund_not_found(client):
-    resp = client.get("/api/v1/refunds/RF-NONEXISTENT")
+def test_refund_not_found(client, auth_headers):
+    resp = client.get("/api/v1/refunds/RF-NONEXISTENT", headers=auth_headers)
     assert resp.status_code == 404
 
 

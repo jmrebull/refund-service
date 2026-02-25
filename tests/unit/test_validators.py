@@ -125,6 +125,21 @@ def test_refundable_balance_exhausted_after_partial_refunds():
     assert exc_info.value.code == "REFUND_AMOUNT_EXCEEDED"
 
 
+def test_partial_refund_estimate_exceeds_remaining_balance():
+    """Covers L180: estimated partial refund > remaining refundable balance."""
+    from app.services.refund_service import process_refund
+    # TXN-REG-010 has items ITEM-REG-010-A and ITEM-REG-010-B
+    txn = store.get_transaction("TXN-REG-010")
+    item_a = next(i.id for i in txn.items if i.id.endswith("-A"))
+    # First partial refund of item A succeeds, consuming most of the balance
+    process_refund(_req(transaction_id="TXN-REG-010", item_ids=[item_a]), "req-1")
+    # Second attempt to refund item A again: estimated > remaining → 422
+    with pytest.raises(ValidationError) as exc_info:
+        validate_refund_request(_req(transaction_id="TXN-REG-010", item_ids=[item_a]))
+    assert exc_info.value.code == "REFUND_AMOUNT_EXCEEDED"
+    assert "Estimated refund" in exc_info.value.message
+
+
 def test_valid_partial_refund_passes():
     txn = store.get_transaction("TXN-REG-001")
     item_id = txn.items[0].id
