@@ -98,15 +98,14 @@ def test_installment_exceeds_charged():
     assert exc_info.value.code == "INSTALLMENT_NOT_CHARGED"
 
 
-def test_idempotency_key_duplicate_via_validator():
-    # Save a refund with an idempotency key, then call validator directly — covers L111-113
+def test_idempotency_replay_returns_cached_result():
+    """Service returns (result, was_replayed=True) on duplicate idempotency key."""
     from app.services.refund_service import process_refund
-    process_refund(_req(transaction_id="TXN-REG-001", idempotency_key="IDEM-KEY-DIRECT"), "req-1")
-    # Call the validator directly (bypassing service-level idempotency check)
-    with pytest.raises(ValidationError) as exc_info:
-        validate_refund_request(_req(transaction_id="TXN-REG-002", idempotency_key="IDEM-KEY-DIRECT"))
-    assert exc_info.value.code == "DUPLICATE_REFUND"
-    assert exc_info.value.http_status == 409
+    result1, replayed1 = process_refund(_req(transaction_id="TXN-REG-001"), "req-1", "IDEM-KEY-SERVICE")
+    assert not replayed1
+    result2, replayed2 = process_refund(_req(transaction_id="TXN-REG-001"), "req-2", "IDEM-KEY-SERVICE")
+    assert replayed2
+    assert result1.refund_id == result2.refund_id
 
 
 def test_refundable_balance_exhausted_after_partial_refunds():

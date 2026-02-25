@@ -26,12 +26,16 @@ from app.services.audit_service import (
 from app.repository.store import store
 
 
-def process_refund(request: RefundRequest, request_id: str) -> RefundResult:
+def process_refund(
+    request: RefundRequest,
+    request_id: str,
+    idempotency_key: Optional[str] = None,
+) -> "tuple[RefundResult, bool]":
     """
     Process a refund request end-to-end.
 
     Steps:
-      1. Check idempotency key — return existing result if duplicate.
+      1. Check idempotency key — return cached result immediately on replay.
       2. Record REFUND_REQUESTED in audit log.
       3. Validate business rules (raises ValidationError on failure).
       4. Select and run the correct calculation scenario.
@@ -43,21 +47,23 @@ def process_refund(request: RefundRequest, request_id: str) -> RefundResult:
     Args:
         request: The parsed RefundRequest from the API layer.
         request_id: The X-Request-ID header for tracing.
+        idempotency_key: Value from the Idempotency-Key request header.
 
     Returns:
-        The persisted RefundResult.
+        Tuple of (RefundResult, was_replayed). was_replayed is True when the
+        response was served from the idempotency cache without re-processing.
 
     Raises:
         ValidationError: If any business rule check fails.
         CalculationError: If a financial guard condition triggers.
     """
     # Step 1: Idempotency — return cached result immediately
-    if request.idempotency_key:
-        existing_id = store.get_idempotency_key(request.idempotency_key)
+    if idempotency_key:
+        existing_id = store.get_idempotency_key(idempotency_key)
         if existing_id:
             existing = store.get_refund(existing_id)
             if existing:
-                return existing
+                return existing, True
 
     # Step 2: Audit — record request before validation
     record_refund_requested(
@@ -133,18 +139,18 @@ def process_refund(request: RefundRequest, request_id: str) -> RefundResult:
         reason=request.reason,
         calculation_breakdown=breakdown,
         created_at=datetime.now(timezone.utc),
-        idempotency_key=request.idempotency_key,
+        idempotency_key=idempotency_key,
     )
     store.save_refund(result)
 
     # Step 7: Save idempotency key
-    if request.idempotency_key:
-        store.save_idempotency_key(request.idempotency_key, result.refund_id)
+    if idempotency_key:
+        store.save_idempotency_key(idempotency_key, result.refund_id)
 
     # Step 8: Audit — record approval
     record_refund_approved(result=result, request_id=request_id)
 
-    return result
+    return result, False
 
 
 def get_refund(refund_id: str) -> Optional[RefundResult]:

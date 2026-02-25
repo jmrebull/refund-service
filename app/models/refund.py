@@ -11,7 +11,6 @@ class RefundRequest(BaseModel):
     item_ids: Optional[list[str]] = Field(None, max_length=100)
     operator_id: str = Field(..., min_length=1, max_length=50, pattern=r'^[a-zA-Z0-9_-]+$')
     reason: str = Field(..., min_length=1, max_length=500)
-    idempotency_key: Optional[str] = Field(None, min_length=1, max_length=100)
 
 
 class PaymentRefund(BaseModel):

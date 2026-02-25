@@ -138,13 +138,13 @@ def test_rate_limit_after_5_failed_auth_attempts(client):
 
 def test_idempotency_key_prevents_duplicate_processing(client, auth_headers):
     headers = {**auth_headers, "Idempotency-Key": "idem-key-001"}
-    payload = {"transaction_id": "TXN-REG-001", "operator_id": "op1", "reason": "test",
-               "idempotency_key": "idem-key-001"}
+    payload = {"transaction_id": "TXN-REG-001", "operator_id": "op1", "reason": "test"}
     resp1 = client.post("/api/v1/refunds", json=payload, headers=headers)
     resp2 = client.post("/api/v1/refunds", json=payload, headers=headers)
     assert resp1.status_code == 201
-    # Second request returns the same refund (cached)
-    assert resp2.status_code in (200, 201)
+    # Replay returns 200 with Idempotent-Replayed header and same refund_id
+    assert resp2.status_code == 200
+    assert resp2.headers.get("Idempotent-Replayed") == "true"
     assert resp1.json()["data"]["refund_id"] == resp2.json()["data"]["refund_id"]
 
 

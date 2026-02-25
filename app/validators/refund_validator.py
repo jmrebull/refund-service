@@ -103,23 +103,7 @@ def _validate_transaction_status(transaction: Transaction) -> None:
 
 
 def _validate_no_duplicate_full_refund(request: RefundRequest, transaction: Transaction) -> None:
-    """Rule 3: A full refund cannot be issued twice (idempotency check)."""
-    # Check idempotency key first
-    if request.idempotency_key:
-        existing_refund_id = store.get_idempotency_key(request.idempotency_key)
-        if existing_refund_id:
-            existing_refund = store.get_refund(existing_refund_id)
-            if existing_refund:
-                raise ValidationError(
-                    code="DUPLICATE_REFUND",
-                    message=f"A refund with this idempotency key already exists for transaction {transaction.id}",
-                    details={
-                        "existing_refund_id": existing_refund_id,
-                        "refunded_at": existing_refund.created_at.isoformat(),
-                    },
-                    http_status=409,
-                )
-
+    """Rule 3: A full refund cannot be issued twice."""
     # Check for existing full refund (no items specified = full refund attempt)
     if request.item_ids is None:
         existing_full_refund_id = store.has_full_refund(transaction.id)
