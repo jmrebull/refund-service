@@ -44,6 +44,11 @@ def _build_payment_refunds(
 
     Raises:
         CalculationError: If transaction_total is zero.
+
+    Example:
+        total=100, CARD=60, WALLET=40, refund=38.40
+        → CARD: 38.40 * (60/100) = 23.04
+        → WALLET: 38.40 * (40/100) = 15.36
     """
     from app.models.refund import PaymentRefund
 
@@ -81,6 +86,14 @@ def calculate_full_refund(transaction: "Transaction") -> "CalculationBreakdown":
 
     Raises:
         CalculationError: If transaction total is zero (guard against zero division).
+
+    Example (Scenario A):
+        transaction.total = 64.00, 1 CARD payment
+        → total_refund = 64.00, CARD refund_amount = 64.00
+
+    Example (Scenario B):
+        transaction.total = 64.00, CARD=38.40 + WALLET=25.60
+        → CARD refund_amount = 38.40, WALLET refund_amount = 25.60
     """
     from app.models.refund import CalculationBreakdown, PaymentRefund
 
@@ -148,6 +161,14 @@ def calculate_partial_refund(
 
     Raises:
         CalculationError: If subtotal or total is zero (division guards).
+
+    Example (Scenario C):
+        subtotal=50.00, tax=9.00, shipping=5.00, total=64.00
+        item_ids=[ITEM-A] where ITEM-A.unit_price=30.00
+        → ratio = 30.00 / 50.00 = 0.60
+        → refund_tax = 9.00 * 0.60 = 5.40
+        → refund_shipping = 5.00 * 0.60 = 3.00
+        → total_refund = 30.00 + 5.40 + 3.00 = 38.40
     """
     if transaction.subtotal == Decimal("0"):
         raise CalculationError("Cannot calculate item ratio: transaction subtotal is zero")
@@ -205,6 +226,12 @@ def calculate_installment_refund(
 
     Raises:
         CalculationError: If installments_total is zero or total is zero.
+
+    Example (Scenario D):
+        payment.amount=64.00, installments_total=6, installments_charged=3
+        → installment_value = 64.00 / 6 = 10.6667
+        → charged_amount = 10.6667 * 3 = 32.00
+        → total_refund = 32.00 - already_refunded
     """
     from app.models.refund import CalculationBreakdown
 
@@ -261,6 +288,10 @@ def _calculate_usd_equivalent(
 
     Raises:
         CalculationError: If exchange_rate_to_usd is zero.
+
+    Example (Scenario E):
+        local_amount=64.00 BRL, exchange_rate_to_usd=5.20
+        → usd_equivalent = 64.00 / 5.20 = 12.31 USD
     """
     if exchange_rate_to_usd == Decimal("0"):
         raise CalculationError("Cannot convert currency: exchange rate is zero")
@@ -289,6 +320,11 @@ def calculate_cross_border_refund(
 
     Raises:
         CalculationError: If exchange_rate_to_usd is zero or any division guard triggers.
+
+    Example (Scenario E):
+        transaction.total=64.00 BRL, exchange_rate_to_usd=5.20, item_ids=None
+        → delegates to calculate_full_refund → total_refund=64.00 BRL
+        → usd_equivalent = 64.00 / 5.20 = 12.31 USD
     """
     if transaction.exchange_rate_to_usd is None:
         raise CalculationError("Cross-border transaction missing exchange_rate_to_usd")

@@ -149,13 +149,12 @@ def _build_approval_reasoning(result: RefundResult) -> str:
     lines = []
 
     if bd.item_ratio is not None:
-        item_ids = []
-        items_str = ", ".join(item_ids) if item_ids else "selected items"
+        # Extract item IDs from the payment breakdown scenario description is not available,
+        # but items_subtotal and ratio are — give a precise numeric description instead.
         lines.append(
-            f"Partial refund approved for {items_str}. "
+            f"Partial refund approved for items totalling {bd.items_subtotal} {result.currency}. "
             f"Item ratio: {bd.item_ratio:.4f} "
-            f"(items {bd.currency_symbol if hasattr(bd, 'currency_symbol') else ''}"
-            f"{bd.items_subtotal} / subtotal)."
+            f"({bd.items_subtotal} / subtotal)."
         )
         if bd.proportional_tax is not None:
             lines.append(f"Proportional tax: {bd.proportional_tax} ({result.currency}).")
