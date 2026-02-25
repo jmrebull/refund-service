@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Solara Retail — Refund API Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            dark: { bg: '#0f1117', sidebar: '#161b22', card: '#1c2128', border: '#30363d', muted: '#8b949e', text: '#e6edf3' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #161b22; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    .gradient-text { background: linear-gradient(135deg, #58a6ff 0%, #a371f7 50%, #f78166 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-glow { background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88,166,255,0.12), transparent); }
+    .card-hover { transition: border-color 0.2s, box-shadow 0.2s; }
+    .card-hover:hover { border-color: #58a6ff; box-shadow: 0 0 0 1px #58a6ff22, 0 4px 24px rgba(88,166,255,0.08); }
+    .nav-active { background: rgba(88,166,255,0.1); color: #58a6ff; border-left: 2px solid #58a6ff; }
+    .code-block { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow-x: auto; }
+    .method-post { background: rgba(163, 113, 247, 0.15); color: #a371f7; border: 1px solid rgba(163,113,247,0.3); }
+    .method-get { background: rgba(56, 139, 253, 0.15); color: #58a6ff; border: 1px solid rgba(56,139,253,0.3); }
+    .badge-stable { background: rgba(63, 185, 80, 0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.3); }
+  </style>
+</head>
+<body class="bg-[#0f1117] text-[#e6edf3] min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 min-h-screen bg-[#161b22] border-r border-[#30363d] flex-shrink-0 fixed left-0 top-0 bottom-0 overflow-y-auto z-10">
+    <!-- Logo -->
+    <div class="px-5 py-5 border-b border-[#30363d]">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[#58a6ff] to-[#a371f7] flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-[#e6edf3]">Solara Retail</p>
+          <p class="text-xs text-[#8b949e]">Refund API</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="px-4 py-3">
+      <div class="flex items-center gap-2 bg-[#1c2128] border border-[#30363d] rounded-lg px-3 py-2 text-sm text-[#8b949e]">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <span>Search docs...</span>
+        <span class="ml-auto text-xs bg-[#30363d] px-1.5 py-0.5 rounded">⌘K</span>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="px-3 pb-6">
+      <p class="text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-2 py-2 mt-2">Getting Started</p>
+      <a href="#introduction" class="nav-active flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium mb-0.5 cursor-pointer">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Introduction
+      </a>
+      <a href="#quickstart" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Quickstart
+      </a>
+      <a href="#authentication" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+        Authentication
+      </a>
+
+      <p class="text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-2 py-2 mt-4">API Reference</p>
+      <a href="/docs" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Interactive Docs ↗
+      </a>
+
+      <p class="text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-2 py-2 mt-4">Refund Scenarios</p>
+      <a href="#scenario-a" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <span class="text-xs font-mono bg-[#1c2128] border border-[#30363d] px-1.5 py-0.5 rounded text-[#8b949e]">A</span>
+        Full — Single Method
+      </a>
+      <a href="#scenario-b" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <span class="text-xs font-mono bg-[#1c2128] border border-[#30363d] px-1.5 py-0.5 rounded text-[#8b949e]">B</span>
+        Full — Split Payment
+      </a>
+      <a href="#scenario-c" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <span class="text-xs font-mono bg-[#1c2128] border border-[#30363d] px-1.5 py-0.5 rounded text-[#8b949e]">C</span>
+        Partial — Item Subset
+      </a>
+      <a href="#scenario-d" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <span class="text-xs font-mono bg-[#1c2128] border border-[#30363d] px-1.5 py-0.5 rounded text-[#8b949e]">D</span>
+        Installment
+      </a>
+      <a href="#scenario-e" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <span class="text-xs font-mono bg-[#1c2128] border border-[#30363d] px-1.5 py-0.5 rounded text-[#8b949e]">E</span>
+        Cross-border
+      </a>
+
+      <p class="text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-2 py-2 mt-4">Resources</p>
+      <a href="#error-codes" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Error Codes
+      </a>
+      <a href="#security" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2128] mb-0.5 cursor-pointer transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Security
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="ml-64 flex-1 min-h-screen">
+
+    <!-- Top bar -->
+    <header class="sticky top-0 z-10 bg-[#0f1117]/80 backdrop-blur border-b border-[#30363d] px-8 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2 text-sm text-[#8b949e]">
+        <span>Docs</span>
+        <span>/</span>
+        <span class="text-[#e6edf3]">Introduction</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="badge-stable text-xs px-2.5 py-1 rounded-full font-medium">v1.0.0 — Stable</span>
+        <a href="/docs" class="text-sm text-[#8b949e] hover:text-[#e6edf3] transition-colors flex items-center gap-1">
+          API Reference
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <div class="max-w-4xl mx-auto px-8 py-12">
+
+      <!-- Hero -->
+      <section id="introduction" class="hero-glow mb-16">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-xs font-semibold text-[#58a6ff] uppercase tracking-wider">Getting Started</span>
+        </div>
+        <h1 class="text-4xl font-bold mb-4 leading-tight">
+          <span class="gradient-text">Refund Reconciliation</span><br/>
+          <span class="text-[#e6edf3]">for LatAm e-commerce</span>
+        </h1>
+        <p class="text-lg text-[#8b949e] leading-relaxed max-w-2xl mb-8">
+          Issue and track refunds across full, split, partial, installment, and cross-border payment scenarios. Built for precision — every calculation uses <code class="text-[#a371f7] bg-[#1c2128] px-1.5 py-0.5 rounded text-sm">decimal.Decimal</code> with ROUND_HALF_UP.
+        </p>
+        <div class="flex items-center gap-4">
+          <a href="/docs" class="inline-flex items-center gap-2 bg-[#58a6ff] hover:bg-[#79b8ff] text-[#0d1117] font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors">
+            Interactive API
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+          <a href="#quickstart" class="inline-flex items-center gap-2 bg-[#1c2128] hover:bg-[#30363d] text-[#e6edf3] font-medium px-5 py-2.5 rounded-lg text-sm border border-[#30363d] transition-colors">
+            Quickstart
+          </a>
+        </div>
+      </section>
+
+      <!-- Feature cards -->
+      <section class="mb-16">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="card-hover bg-[#1c2128] border border-[#30363d] rounded-xl p-5">
+            <div class="w-9 h-9 rounded-lg bg-[#58a6ff]/10 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5 text-[#58a6ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M12 7h.01M9 7H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2V9a2 2 0 00-2-2h-2"/></svg>
+            </div>
+            <h3 class="text-sm font-semibold text-[#e6edf3] mb-1">5 Refund Scenarios</h3>
+            <p class="text-xs text-[#8b949e] leading-relaxed">Full, split, partial, installment, and cross-border — each with precise calculation breakdowns.</p>
+          </div>
+          <div class="card-hover bg-[#1c2128] border border-[#30363d] rounded-xl p-5">
+            <div class="w-9 h-9 rounded-lg bg-[#a371f7]/10 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5 text-[#a371f7]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            </div>
+            <h3 class="text-sm font-semibold text-[#e6edf3] mb-1">OWASP Hardened</h3>
+            <p class="text-xs text-[#8b949e] leading-relaxed">Rate limiting, timing-safe auth, mass-assignment protection, and no stack traces in responses.</p>
+          </div>
+          <div class="card-hover bg-[#1c2128] border border-[#30363d] rounded-xl p-5">
+            <div class="w-9 h-9 rounded-lg bg-[#f78166]/10 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5 text-[#f78166]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            </div>
+            <h3 class="text-sm font-semibold text-[#e6edf3] mb-1">Append-only Audit Log</h3>
+            <p class="text-xs text-[#8b949e] leading-relaxed">Every refund operation is logged immutably with full reasoning and calculation breakdown.</p>
+          </div>
+          <div class="card-hover bg-[#1c2128] border border-[#30363d] rounded-xl p-5">
+            <div class="w-9 h-9 rounded-lg bg-[#3fb950]/10 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5 text-[#3fb950]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <h3 class="text-sm font-semibold text-[#e6edf3] mb-1">Idempotent by Design</h3>
+            <p class="text-xs text-[#8b949e] leading-relaxed">Pass an <code class="text-[#3fb950] text-xs">Idempotency-Key</code> header to safely retry requests without double-processing.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Endpoints overview -->
+      <section class="mb-16">
+        <h2 class="text-xl font-semibold text-[#e6edf3] mb-2">Endpoints</h2>
+        <p class="text-sm text-[#8b949e] mb-5">All endpoints are prefixed with <code class="text-[#a371f7] bg-[#1c2128] px-1.5 py-0.5 rounded">/api/v1</code></p>
+        <div class="bg-[#1c2128] border border-[#30363d] rounded-xl overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-[#30363d]">
+                <th class="text-left text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-5 py-3">Method</th>
+                <th class="text-left text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-5 py-3">Path</th>
+                <th class="text-left text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-5 py-3">Auth</th>
+                <th class="text-left text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-5 py-3">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-[#30363d]/50 hover:bg-[#30363d]/20 transition-colors">
+                <td class="px-5 py-3"><span class="method-post text-xs font-mono font-semibold px-2 py-0.5 rounded">POST</span></td>
+                <td class="px-5 py-3 font-mono text-xs text-[#e6edf3]">/refunds</td>
+                <td class="px-5 py-3"><span class="text-[#f78166] text-xs">Required</span></td>
+                <td class="px-5 py-3 text-[#8b949e] text-xs">Create a refund</td>
+              </tr>
+              <tr class="border-b border-[#30363d]/50 hover:bg-[#30363d]/20 transition-colors">
+                <td class="px-5 py-3"><span class="method-get text-xs font-mono font-semibold px-2 py-0.5 rounded">GET</span></td>
+                <td class="px-5 py-3 font-mono text-xs text-[#e6edf3]">/refunds/{refund_id}</td>
+                <td class="px-5 py-3"><span class="text-[#3fb950] text-xs">None</span></td>
+                <td class="px-5 py-3 text-[#8b949e] text-xs">Get a refund by ID</td>
+              </tr>
+              <tr class="border-b border-[#30363d]/50 hover:bg-[#30363d]/20 transition-colors">
+                <td class="px-5 py-3"><span class="method-get text-xs font-mono font-semibold px-2 py-0.5 rounded">GET</span></td>
+                <td class="px-5 py-3 font-mono text-xs text-[#e6edf3]">/refunds?transaction_id=</td>
+                <td class="px-5 py-3"><span class="text-[#3fb950] text-xs">None</span></td>
+                <td class="px-5 py-3 text-[#8b949e] text-xs">List refunds by transaction</td>
+              </tr>
+              <tr class="border-b border-[#30363d]/50 hover:bg-[#30363d]/20 transition-colors">
+                <td class="px-5 py-3"><span class="method-get text-xs font-mono font-semibold px-2 py-0.5 rounded">GET</span></td>
+                <td class="px-5 py-3 font-mono text-xs text-[#e6edf3]">/transactions/{id}</td>
+                <td class="px-5 py-3"><span class="text-[#3fb950] text-xs">None</span></td>
+                <td class="px-5 py-3 text-[#8b949e] text-xs">Get a transaction</td>
+              </tr>
+              <tr class="border-b border-[#30363d]/50 hover:bg-[#30363d]/20 transition-colors">
+                <td class="px-5 py-3"><span class="method-get text-xs font-mono font-semibold px-2 py-0.5 rounded">GET</span></td>
+                <td class="px-5 py-3 font-mono text-xs text-[#e6edf3]">/transactions</td>
+                <td class="px-5 py-3"><span class="text-[#3fb950] text-xs">None</span></td>
+                <td class="px-5 py-3 text-[#8b949e] text-xs">List all transactions</td>
+              </tr>
+              <tr class="hover:bg-[#30363d]/20 transition-colors">
+                <td class="px-5 py-3"><span class="method-get text-xs font-mono font-semibold px-2 py-0.5 rounded">GET</span></td>
+                <td class="px-5 py-3 font-mono text-xs text-[#e6edf3]">/audit</td>
+                <td class="px-5 py-3"><span class="text-[#3fb950] text-xs">None</span></td>
+                <td class="px-5 py-3 text-[#8b949e] text-xs">Query audit log</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Quickstart -->
+      <section id="quickstart" class="mb-16">
+        <h2 class="text-xl font-semibold text-[#e6edf3] mb-2">Quickstart</h2>
+        <p class="text-sm text-[#8b949e] mb-5">Create your first refund in under a minute.</p>
+
+        <!-- Step 1 -->
+        <div class="flex gap-4 mb-6">
+          <div class="flex-shrink-0 w-7 h-7 rounded-full bg-[#58a6ff]/10 border border-[#58a6ff]/30 flex items-center justify-center text-xs font-semibold text-[#58a6ff]">1</div>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-[#e6edf3] mb-2">Authenticate with your API key</p>
+            <p class="text-xs text-[#8b949e] mb-3">Add the <code class="text-[#a371f7] bg-[#1c2128] px-1 py-0.5 rounded">X-API-Key</code> header to every mutating request.</p>
+            <div class="code-block p-4">
+              <pre class="text-xs text-[#e6edf3] font-mono"><span class="text-[#8b949e]"># All POST requests require this header</span>
+X-API-Key: SOLARA-SECRET-2026</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="flex gap-4 mb-6">
+          <div class="flex-shrink-0 w-7 h-7 rounded-full bg-[#58a6ff]/10 border border-[#58a6ff]/30 flex items-center justify-center text-xs font-semibold text-[#58a6ff]">2</div>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-[#e6edf3] mb-2">Create a full refund</p>
+            <div class="code-block p-4">
+              <pre class="text-xs text-[#e6edf3] font-mono leading-relaxed"><span class="text-[#3fb950]">curl</span> <span class="text-[#f78166]">-X POST</span> https://refund-service.vercel.app/api/v1/refunds \
+  <span class="text-[#f78166]">-H</span> <span class="text-[#a5d6ff]">"X-API-Key: SOLARA-SECRET-2026"</span> \
+  <span class="text-[#f78166]">-H</span> <span class="text-[#a5d6ff]">"Content-Type: application/json"</span> \
+  <span class="text-[#f78166]">-d</span> <span class="text-[#a5d6ff]">'{
+    "transaction_id": "TXN-REG-001",
+    "operator_id": "op1",
+    "reason": "customer request"
+  }'</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-7 h-7 rounded-full bg-[#58a6ff]/10 border border-[#58a6ff]/30 flex items-center justify-center text-xs font-semibold text-[#58a6ff]">3</div>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-[#e6edf3] mb-2">Inspect the response</p>
+            <div class="code-block p-4">
+              <pre class="text-xs text-[#e6edf3] font-mono leading-relaxed">{
+  <span class="text-[#79c0ff]">"data"</span>: {
+    <span class="text-[#79c0ff]">"refund_id"</span>: <span class="text-[#a5d6ff]">"RF-F5C0DBC7"</span>,
+    <span class="text-[#79c0ff]">"status"</span>: <span class="text-[#3fb950]">"APPROVED"</span>,
+    <span class="text-[#79c0ff]">"total_refund_amount"</span>: <span class="text-[#f78166]">"18.80"</span>,
+    <span class="text-[#79c0ff]">"currency"</span>: <span class="text-[#a5d6ff]">"BRL"</span>
+  }
+}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Authentication -->
+      <section id="authentication" class="mb-16">
+        <h2 class="text-xl font-semibold text-[#e6edf3] mb-2">Authentication</h2>
+        <p class="text-sm text-[#8b949e] mb-5">The API uses a static API key passed via the <code class="text-[#a371f7] bg-[#1c2128] px-1.5 py-0.5 rounded">X-API-Key</code> header.</p>
+        <div class="bg-[#1c2128] border border-[#f78166]/30 rounded-xl p-5 mb-5">
+          <div class="flex items-start gap-3">
+            <svg class="w-4 h-4 text-[#f78166] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div>
+              <p class="text-sm font-medium text-[#f78166] mb-1">Security Notice</p>
+              <p class="text-xs text-[#8b949e]">Never pass the API key in the URL or request body. The key is checked using <code class="text-[#a371f7]">hmac.compare_digest</code> to prevent timing attacks. After 5 failed attempts, the IP is rate-limited for 60 seconds.</p>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="bg-[#1c2128] border border-[#30363d] rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-[#e6edf3] mb-1">401</p>
+            <p class="text-xs text-[#8b949e]">Missing or invalid key</p>
+          </div>
+          <div class="bg-[#1c2128] border border-[#30363d] rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-[#e6edf3] mb-1">429</p>
+            <p class="text-xs text-[#8b949e]">Rate limited after 5 fails</p>
+          </div>
+          <div class="bg-[#1c2128] border border-[#30363d] rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-[#e6edf3] mb-1">64KB</p>
+            <p class="text-xs text-[#8b949e]">Max request body size</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Error codes -->
+      <section id="error-codes" class="mb-16">
+        <h2 class="text-xl font-semibold text-[#e6edf3] mb-2">Error Codes</h2>
+        <p class="text-sm text-[#8b949e] mb-5">All errors return a consistent envelope with a <code class="text-[#a371f7] bg-[#1c2128] px-1.5 py-0.5 rounded">code</code> and <code class="text-[#a371f7] bg-[#1c2128] px-1.5 py-0.5 rounded">message</code>.</p>
+        <div class="bg-[#1c2128] border border-[#30363d] rounded-xl overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-[#30363d]">
+                <th class="text-left text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-5 py-3">Code</th>
+                <th class="text-left text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-5 py-3">HTTP</th>
+                <th class="text-left text-xs font-semibold text-[#8b949e] uppercase tracking-wider px-5 py-3">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-[#30363d]/50"><td class="px-5 py-2.5 font-mono text-xs text-[#a371f7]">TRANSACTION_NOT_FOUND</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">404</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">Transaction does not exist</td></tr>
+              <tr class="border-b border-[#30363d]/50"><td class="px-5 py-2.5 font-mono text-xs text-[#a371f7]">INVALID_TRANSACTION_STATUS</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">422</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">VOIDED, CHARGEBACKED, or AUTHORIZED</td></tr>
+              <tr class="border-b border-[#30363d]/50"><td class="px-5 py-2.5 font-mono text-xs text-[#a371f7]">DUPLICATE_REFUND</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">409</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">Full refund already exists</td></tr>
+              <tr class="border-b border-[#30363d]/50"><td class="px-5 py-2.5 font-mono text-xs text-[#a371f7]">REFUND_AMOUNT_EXCEEDED</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">422</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">Exceeds remaining refundable balance</td></tr>
+              <tr class="border-b border-[#30363d]/50"><td class="px-5 py-2.5 font-mono text-xs text-[#a371f7]">UNAUTHORIZED</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">401</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">Missing or invalid API key</td></tr>
+              <tr class="border-b border-[#30363d]/50"><td class="px-5 py-2.5 font-mono text-xs text-[#a371f7]">RATE_LIMITED</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">429</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">Too many failed auth attempts</td></tr>
+              <tr><td class="px-5 py-2.5 font-mono text-xs text-[#a371f7]">INTERNAL_ERROR</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">500</td><td class="px-5 py-2.5 text-xs text-[#8b949e]">Unexpected error — no details leaked</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="border-t border-[#30363d] pt-8 flex items-center justify-between text-xs text-[#8b949e]">
+        <span>Solara Retail — Refund Reconciliation Service v1.0.0</span>
+        <a href="/docs" class="hover:text-[#58a6ff] transition-colors flex items-center gap-1">
+          Interactive API Docs
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      </footer>
+
+    </div>
+  </main>
+
+</body>
+</html>
